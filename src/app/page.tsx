@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -833,9 +833,8 @@ export default function Home() {
                 </TableRow>
               ) : (
                 listings.map((l) => (
-                  <>
+                  <Fragment key={l.id}>
                     <TableRow
-                      key={l.id}
                       onClick={() => toggleExpand(l.id)}
                       className="cursor-pointer hover:bg-muted/50"
                     >
@@ -1000,7 +999,7 @@ export default function Home() {
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 ))
               )}
             </TableBody>

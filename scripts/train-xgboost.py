@@ -352,14 +352,24 @@ def train_model(X: pd.DataFrame, y: pd.Series) -> dict:
 def record_artifact(conn: sqlite3.Connection, metrics: dict):
     """
     Insert/update the ModelArtifact row.
+    Uses UPSERT to handle the UNIQUE constraint on name.
     """
-    # Deactivate previous
+    # Deactivate all previous artifacts
     conn.execute("UPDATE ModelArtifact SET active = 0 WHERE name = 'deal-scorer'")
-    # Insert new
+    # Upsert the new artifact (INSERT or REPLACE if name exists)
     conn.execute(
         """
         INSERT INTO ModelArtifact (id, name, version, algorithm, filePath, trainingRows, features, metrics, trainedAt, active)
         VALUES (lower(hex(randomblob(12))), 'deal-scorer', 1, 'xgboost', ?, ?, ?, ?, datetime('now'), 1)
+        ON CONFLICT(name) DO UPDATE SET
+            version = version + 1,
+            algorithm = 'xgboost',
+            filePath = excluded.filePath,
+            trainingRows = excluded.trainingRows,
+            features = excluded.features,
+            metrics = excluded.metrics,
+            trainedAt = datetime('now'),
+            active = 1
         """,
         (
             str(MODEL_PATH.relative_to(ROOT)),
