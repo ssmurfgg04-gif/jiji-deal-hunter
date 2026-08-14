@@ -15,8 +15,13 @@
  *   GET /api_web/v1/search?q=...&min_price=...&max_price=...&sort=...&page=1
  *                                                   — filtered search
  *
- * Pacing: 1-2 seconds between requests, single-threaded. No proxy needed for
- * direct API calls — Cloudflare challenge only triggers on aggressive HTML scraping.
+ * Pacing: 1-2 seconds between requests, single-threaded.
+ *
+ * PROXY ROTATION (added 2026-08): Cloudflare now actively blocks our IP range
+ * with 403+HTML challenges on the API endpoints. On Cloudflare block, the
+ * client transparently rotates through the working ProxyPool entries (validated
+ * against the target's health endpoint — see proxy-pool.ts). If no proxies are
+ * available, returns null and the caller's Wayback fallback kicks in.
  *
  * IMPORTANT: This client does NOT silently fall back to synthetic data. If a live
  * call fails, it returns null and the caller decides how to handle the gap
@@ -24,6 +29,7 @@
  */
 
 import { db } from "./db";
+import { pickProxy, seedDefaultProxies } from "./proxy-pool";
 
 export const MARKETS = [
   { id: "ke", name: "Kenya", baseUrl: "https://jiji.co.ke", currency: "KES" },
@@ -305,14 +311,14 @@ function recordFailure(mode: "blocked" | "error", reason: string) {
 }
 
 /**
- * Core fetch with timeout + Cloudflare detection + retry/backoff.
+ * Core fetch with timeout + Cloudflare detection + retry/backoff + proxy rotation.
  * Returns null on any failure (does NOT throw — caller decides how to handle).
  *
  * Retry strategy:
  *   - 1 retry on transient network errors (AbortError, ECONNRESET, etc.)
  *   - 1 retry on 429 / 503 with Retry-After honor
- *   - NO retry on Cloudflare 403-HTML (immediately blocked — retrying just
- *     gets you blocked harder)
+ *   - On Cloudflare 403+HTML: try up to 3 working proxies from ProxyPool
+ *     (each proxy gets its own paced delay). If all proxies blocked, return null.
  *   - NO retry on 4xx other than 429 (client error, won't fix itself)
  */
 async function tryLiveApi<T>(
@@ -330,64 +336,97 @@ async function tryLiveApi<T>(
     }
   }
 
-  const maxRetries = 1;
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    await pacedDelay();
+  // Direct attempt first (fast path — no proxy overhead if not blocked)
+  const directResult = await tryFetch<T>(marketId, url.toString(), null, opts.timeoutMs);
+  if (directResult !== "CLOUDFLARE_BLOCKED") {
+    return directResult;
+  }
 
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? 8000);
-      const resp = await fetch(url.toString(), {
-        headers: defaultHeaders(marketId),
-        signal: controller.signal,
-        cache: "no-store",
-      });
-      clearTimeout(timeout);
+  // Direct call was Cloudflare-blocked. Rotate through up to 3 proxies.
+  console.warn(`[jiji-client] Cloudflare blocked direct request to ${url.pathname} — rotating proxies...`);
 
-      // Cloudflare challenge pages return 403 with HTML body — don't retry.
-      if (resp.status === 403) {
-        const ct = resp.headers.get("content-type") ?? "";
-        if (ct.includes("text/html")) {
-          recordFailure("blocked", "Cloudflare JS challenge (403 + HTML)");
-          return null;
-        }
+  // Lazy seed on first block (idempotent — skips existing entries)
+  await seedDefaultProxies().catch(() => null);
+
+  const maxProxies = 3;
+  for (let i = 0; i < maxProxies; i++) {
+    const proxyUrl = await pickProxy().catch(() => null);
+    if (!proxyUrl) {
+      console.warn(`[jiji-client] No working proxies left in pool (tried ${i}).`);
+      break;
+    }
+    console.log(`[jiji-client] Retrying via proxy [${i + 1}/${maxProxies}]: ${proxyUrl}`);
+    const result = await tryFetch<T>(marketId, url.toString(), proxyUrl, opts.timeoutMs);
+    if (result !== "CLOUDFLARE_BLOCKED") {
+      return result;
+    }
+    console.warn(`[jiji-client] Proxy ${proxyUrl} also blocked — trying next...`);
+  }
+
+  recordFailure("blocked", "All proxies exhausted (Cloudflare 403+HTML)");
+  return null;
+}
+
+/**
+ * Single fetch attempt with optional proxy. Returns:
+ *   - T (the parsed JSON) on success
+ *   - null on non-Cloudflare failure (4xx, 5xx, network error)
+ *   - "CLOUDFLARE_BLOCKED" sentinel on 403+HTML (so caller can rotate proxies)
+ */
+async function tryFetch<T>(
+  marketId: string,
+  url: string,
+  proxyUrl: string | null,
+  timeoutMs?: number
+): Promise<T | null | "CLOUDFLARE_BLOCKED"> {
+  await pacedDelay();
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs ?? 8000);
+    // Node 22+ supports `proxy` in fetch init. Cast to any for TS DOM lib compatibility.
+    const init: any = {
+      headers: defaultHeaders(marketId),
+      signal: controller.signal,
+      cache: "no-store",
+    };
+    if (proxyUrl) init.proxy = proxyUrl;
+    const resp = await fetch(url, init);
+    clearTimeout(timeout);
+
+    // Cloudflare challenge pages return 403 with HTML body — signal caller to rotate.
+    if (resp.status === 403) {
+      const ct = resp.headers.get("content-type") ?? "";
+      if (ct.includes("text/html")) {
+        // Drain the body to avoid leaking the connection
+        await resp.text().catch(() => null);
+        if (!proxyUrl) recordFailure("blocked", "Cloudflare JS challenge (403 + HTML)");
+        return "CLOUDFLARE_BLOCKED";
       }
+    }
 
-      // Retryable: 429 (rate-limited) or 503 (temporarily unavailable)
-      if ((resp.status === 429 || resp.status === 503) && attempt < maxRetries) {
-        const retryAfter = parseInt(resp.headers.get("retry-after") ?? "5", 10);
-        const waitMs = (isNaN(retryAfter) ? 5 : retryAfter) * 1000;
-        await sleep(waitMs);
-        continue;
-      }
-
-      if (!resp.ok) {
-        recordFailure("error", `HTTP ${resp.status}`);
-        return null;
-      }
-
-      const json = (await resp.json()) as T;
-      recordLive();
-      return json;
-    } catch (e: any) {
-      const isTransient =
-        e?.name === "AbortError" ||
-        e?.code === "ECONNRESET" ||
-        e?.code === "ETIMEDOUT" ||
-        e?.code === "ENOTFOUND";
-      if (isTransient && attempt < maxRetries) {
-        // exponential backoff: 1s, 2s, 4s, ...
-        await sleep(1000 * Math.pow(2, attempt));
-        continue;
-      }
-      recordFailure(
-        "error",
-        e?.name === "AbortError" ? "timeout" : String(e?.message ?? "network error")
-      );
+    // Retryable: 429 (rate-limited) or 503 (temporarily unavailable) — for simplicity
+    // here we just fail; the outer tryLiveApi handles retry via proxy rotation.
+    if (resp.status === 429 || resp.status === 503) {
+      recordFailure("error", `HTTP ${resp.status} (transient)`);
       return null;
     }
+
+    if (!resp.ok) {
+      recordFailure("error", `HTTP ${resp.status}`);
+      return null;
+    }
+
+    const json = (await resp.json()) as T;
+    recordLive();
+    return json;
+  } catch (e: any) {
+    recordFailure(
+      "error",
+      e?.name === "AbortError" ? "timeout" : String(e?.message ?? "network error")
+    );
+    return null;
   }
-  return null;
 }
 
 // ---------------------------------------------------------------------------

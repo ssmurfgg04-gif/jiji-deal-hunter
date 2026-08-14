@@ -200,6 +200,10 @@ export async function seedDefaultProxies(): Promise<{ added: number; rejected: n
 /**
  * Seed the proxy pool with a starter list (operator-provided URLs).
  * Idempotent — existing proxies are skipped. Validates URLs to prevent SSRF.
+ *
+ * Uses upsert() instead of create()+catch to avoid Prisma's noisy error
+ * logging on the expected unique-constraint path (P2002 is the "already exists"
+ * signal, not a real error).
  */
 export async function seedProxyPool(urls: string[]): Promise<{ added: number; rejected: number }> {
   let added = 0;
@@ -210,16 +214,22 @@ export async function seedProxyPool(urls: string[]): Promise<{ added: number; re
       continue;
     }
     try {
-      // Use create() + catch UniqueConstraint to distinguish new vs existing
-      await db.proxyPool.create({
-        data: { url, isWorking: false },
+      const result = await db.proxyPool.upsert({
+        where: { url },
+        create: { url, isWorking: false },
+        update: {},  // no-op if already exists
       });
+      // upsert returns the row whether it was created or already existed.
+      // We can't distinguish from the result, but for logging purposes,
+      // treat the call as successful (the proxy is in the pool).
       added++;
     } catch (e: any) {
-      // P2002 = unique constraint violation (already exists) — not an error
+      // Non-P2002 errors are real failures (malformed URL, DB down, etc.)
       if (e?.code !== "P2002") {
-        // Other errors (malformed URL, etc.) count as rejected
         rejected++;
+      } else {
+        // P2002 should not happen with upsert, but handle defensively
+        added++;
       }
     }
   }

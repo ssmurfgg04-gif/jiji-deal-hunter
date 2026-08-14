@@ -1,20 +1,30 @@
 {
   "version": "v3",
-  "target": "stale_listing (temporal bootstrap; will switch to motivated_seller once live data accumulates)",
-  "split": "time-based (cutoff=2024-06-01)",
-  "auc": 0.681640625,
-  "accuracy": 0.9038461538461539,
-  "baseline_accuracy": 0.9230769230769231,
-  "lift": -0.019230769230769273,
-  "f1": 0.44444444395061733,
-  "optimal_threshold": 0.5746369957923889,
-  "accuracy_at_0_5": 0.8653846153846154,
-  "f1_at_0_5": 0.36363636363636365,
-  "n_train": 412,
-  "n_val": 104,
+  "target": "motivated_seller",
+  "split": "time-based (cutoff=1970-01-01)",
+  "auc": 0.697735628342246,
+  "accuracy": 0.5944444444444444,
+  "baseline_accuracy": 0.7555555555555555,
+  "lift": -0.1611111111111111,
+  "f1": 0.4859154925300535,
+  "optimal_threshold": 0.6081877946853638,
+  "n_train": 758,
+  "n_val": 360,
   "n_positive_train": 25,
-  "n_positive_val": 8,
+  "n_positive_val": 88,
   "best_iteration": 6,
+  "n_trees": 37,
+  "scale_pos_weight": 29.32,
+  "hyperparams": {
+    "max_depth": 3,
+    "learning_rate": 0.05,
+    "n_estimators": 300,
+    "min_child_weight": 3,
+    "reg_alpha": 0.1,
+    "reg_lambda": 1.0,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8
+  },
   "features_excluded": [
     "price_vs_median (v1 leakage source)",
     "price_delta_pct, days_listed, price_volatility, price_drop_rate (target components)",
@@ -22,44 +32,42 @@
   ],
   "top_features": [
     {
-      "name": "price",
-      "gain": 33.611480712890625
-    },
-    {
-      "name": "fav_count",
-      "gain": 21.724584579467773
-    },
-    {
-      "name": "views",
-      "gain": 21.048006057739258
-    },
-    {
-      "name": "dealer_ratio",
-      "gain": 17.815265655517578
-    },
-    {
-      "name": "is_boost",
-      "gain": 16.631052017211914
-    },
-    {
-      "name": "capture_count",
-      "gain": 13.467594146728516
+      "name": "image_count",
+      "gain": 179.04971313476562
     },
     {
       "name": "days_on_market",
-      "gain": 9.906604766845703
+      "gain": 173.46456909179688
     },
     {
       "name": "has_phone",
-      "gain": 9.855603218078613
+      "gain": 143.40406799316406
     },
     {
-      "name": "seller_adverts_count",
-      "gain": 9.854926109313965
+      "name": "views",
+      "gain": 43.20688247680664
     },
     {
-      "name": "image_count",
-      "gain": 5.116669178009033
+      "name": "price",
+      "gain": 37.434627532958984
     }
-  ]
+  ],
+  "feature_label_correlations": {
+    "price": -0.0596698970952425,
+    "views": -0.04386890811213537,
+    "fav_count": -0.05712557821133049,
+    "image_count": -0.14045292720103214,
+    "days_on_market": -0.030639242654998105,
+    "seller_adverts_count": -0.025303381132437117,
+    "seller_feedback_count": -0.04193465294412706,
+    "seller_rating": -0.016396011567647237,
+    "dealer_ratio": -0.019217946693132048,
+    "has_phone": -0.294581854475607,
+    "verified_badge": NaN,
+    "is_dealer": -0.04639407545014711,
+    "is_boost": -0.08599891898152191,
+    "available_tops_count": NaN,
+    "capture_count": -0.11129158967977432
+  },
+  "trained_at": "2026-08-14T15:48:42.816312+00:00"
 }

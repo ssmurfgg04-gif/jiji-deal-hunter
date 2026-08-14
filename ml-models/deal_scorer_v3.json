@@ -20,1186 +20,219 @@
   "trees": [
     [
       {
-        "feature": "is_boost",
-        "threshold": 1.0,
+        "feature": "days_on_market",
+        "threshold": 8.0,
         "left": 1,
         "right": 2,
         "leaf": false
       },
       {
+        "leaf": true,
+        "value": -0.0991249979
+      },
+      {
         "feature": "views",
-        "threshold": 46.0,
+        "threshold": 1.0,
         "left": 3,
-        "right": 4,
+        "right": 6,
         "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 69.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0727318451
+      },
+      {
+        "leaf": true,
+        "value": 0.0921086669
       },
       {
         "leaf": true,
         "value": -0.0906666741
-      },
-      {
-        "feature": "capture_count",
-        "threshold": 3.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0644644648
-      },
-      {
-        "leaf": true,
-        "value": 0.0137274656
-      },
-      {
-        "leaf": true,
-        "value": -0.0213545058
       }
     ],
     [
       {
         "feature": "price",
-        "threshold": 5000000.0,
+        "threshold": 1700.0,
         "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "views",
-        "threshold": 72.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0803164169
-      },
-      {
-        "feature": "price",
-        "threshold": 65000.0,
-        "left": 5,
         "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 68000.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0453203544
-      },
-      {
-        "leaf": true,
-        "value": -0.0961307064
-      },
-      {
-        "leaf": true,
-        "value": 0.0248960797
-      },
-      {
-        "leaf": true,
-        "value": 0.0801867545
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 5000000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "fav_count",
-        "threshold": 3.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0791955888
-      },
-      {
-        "feature": "price",
-        "threshold": 75000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0629946291
-      },
-      {
-        "leaf": true,
-        "value": -0.0147366421
-      },
-      {
-        "leaf": true,
-        "value": -0.0913231373
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 1200000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "capture_count",
-        "threshold": 7.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 5000000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "dealer_ratio",
-        "threshold": 392.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0637450442
-      },
-      {
-        "leaf": true,
-        "value": 0.0121304123
-      },
-      {
-        "leaf": true,
-        "value": 0.0706859902
-      },
-      {
-        "leaf": true,
-        "value": -0.0552491248
-      },
-      {
-        "leaf": true,
-        "value": 0.0654170066
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 5000000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "views",
-        "threshold": 147.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0710843727
-      },
-      {
-        "feature": "price",
-        "threshold": 145000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0655923113
-      },
-      {
-        "leaf": true,
-        "value": -0.0333811566
-      },
-      {
-        "leaf": true,
-        "value": -0.0853574499
-      }
-    ],
-    [
-      {
-        "feature": "views",
-        "threshold": 70.0,
-        "left": 1,
-        "right": 2,
         "leaf": false
       },
       {
         "feature": "has_phone",
         "threshold": 1.0,
+        "left": 2,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 125.0,
         "left": 3,
         "right": 4,
         "leaf": false
       },
       {
-        "feature": "image_count",
-        "threshold": 4.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
+        "leaf": true,
+        "value": 0.0747891665
       },
       {
-        "feature": "capture_count",
-        "threshold": 3.0,
+        "leaf": true,
+        "value": 0.056881696
+      },
+      {
+        "leaf": true,
+        "value": -0.0762169585
+      },
+      {
+        "feature": "has_phone",
+        "threshold": 1.0,
         "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "feature": "capture_count",
-        "threshold": 3.0,
-        "left": 9,
         "right": 10,
         "leaf": false
       },
       {
-        "leaf": true,
-        "value": 0.0658479556
-      },
-      {
-        "leaf": true,
-        "value": 0.0278467294
-      },
-      {
-        "leaf": true,
-        "value": 0.00263114623
-      },
-      {
-        "leaf": true,
-        "value": -0.0467511788
-      },
-      {
-        "leaf": true,
-        "value": -0.083903484
-      },
-      {
-        "leaf": true,
-        "value": -0.0114314118
-      }
-    ],
-    [
-      {
         "feature": "price",
-        "threshold": 5000000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "views",
-        "threshold": 72.0,
-        "left": 3,
-        "right": 4,
+        "threshold": 14000.0,
+        "left": 8,
+        "right": 9,
         "leaf": false
       },
       {
         "leaf": true,
-        "value": 0.0676189885
-      },
-      {
-        "feature": "price",
-        "threshold": 7000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 68000.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
+        "value": -0.0896837115
       },
       {
         "leaf": true,
-        "value": -0.00799532514
+        "value": -0.0184842292
       },
       {
         "leaf": true,
-        "value": -0.0599575005
-      },
-      {
-        "leaf": true,
-        "value": 0.0155635122
-      },
-      {
-        "leaf": true,
-        "value": 0.0722999945
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 6550000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 145000.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0596036315
-      },
-      {
-        "feature": "price",
-        "threshold": 33000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0815052316
-      },
-      {
-        "leaf": true,
-        "value": -0.0606020503
-      },
-      {
-        "leaf": true,
-        "value": 0.0239244252
-      }
-    ],
-    [
-      {
-        "feature": "capture_count",
-        "threshold": 5.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "is_boost",
-        "threshold": 1.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0678177848
-      },
-      {
-        "feature": "has_phone",
-        "threshold": 1.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "fav_count",
-        "threshold": 4.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.00494391564
-      },
-      {
-        "leaf": true,
-        "value": 0.0163992718
-      },
-      {
-        "leaf": true,
-        "value": -0.0771589428
-      },
-      {
-        "leaf": true,
-        "value": 0.0444784649
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 5000000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "views",
-        "threshold": 147.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0683097094
-      },
-      {
-        "feature": "price",
-        "threshold": 145000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0639999509
-      },
-      {
-        "leaf": true,
-        "value": -0.0134956241
-      },
-      {
-        "leaf": true,
-        "value": -0.0763573572
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 5000000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 33000.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0638502464
-      },
-      {
-        "leaf": true,
-        "value": -0.0842936859
-      },
-      {
-        "feature": "price",
-        "threshold": 145000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.011239009
-      },
-      {
-        "leaf": true,
-        "value": -0.0749631748
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 1200000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "capture_count",
-        "threshold": 7.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 5000000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 40000.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0768689737
-      },
-      {
-        "leaf": true,
-        "value": 0.012041687
-      },
-      {
-        "leaf": true,
-        "value": 0.0536133163
-      },
-      {
-        "leaf": true,
-        "value": -0.0580301099
-      },
-      {
-        "leaf": true,
-        "value": -0.0172699429
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 6550000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "fav_count",
-        "threshold": 4.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 20000000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 127400.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0645767152
-      },
-      {
-        "leaf": true,
-        "value": 0.0591746978
-      },
-      {
-        "leaf": true,
-        "value": 0.0181813445
-      },
-      {
-        "leaf": true,
-        "value": -0.00546089374
-      },
-      {
-        "leaf": true,
-        "value": -0.0730605647
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 5000000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 145000.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 16500000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 33000.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0710057169
-      },
-      {
-        "leaf": true,
-        "value": 0.0359592326
-      },
-      {
-        "leaf": true,
-        "value": 0.0613488927
-      },
-      {
-        "leaf": true,
-        "value": -0.0499005429
-      },
-      {
-        "leaf": true,
-        "value": 0.00829339772
-      }
-    ],
-    [
-      {
-        "feature": "views",
-        "threshold": 74.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "is_boost",
-        "threshold": 1.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "days_on_market",
-        "threshold": 1407.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "has_phone",
-        "threshold": 1.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0685120896
-      },
-      {
-        "leaf": true,
-        "value": 0.0674829111
-      },
-      {
-        "leaf": true,
-        "value": 0.0245525446
-      },
-      {
-        "leaf": true,
-        "value": 0.00993342791
-      },
-      {
-        "leaf": true,
-        "value": 0.00476828916
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 5000000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 127400.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 20000000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "capture_count",
-        "threshold": 3.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0696818754
-      },
-      {
-        "leaf": true,
-        "value": 0.0528984927
-      },
-      {
-        "leaf": true,
-        "value": 0.0148978597
-      },
-      {
-        "leaf": true,
-        "value": -0.0300088674
-      },
-      {
-        "leaf": true,
-        "value": 0.0264704581
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 6550000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 127400.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 16500000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 33000.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0707821399
-      },
-      {
-        "leaf": true,
-        "value": 0.0219235346
-      },
-      {
-        "leaf": true,
-        "value": 0.0627315268
-      },
-      {
-        "leaf": true,
-        "value": -0.0447734408
-      },
-      {
-        "leaf": true,
-        "value": 0.0143726831
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 1200000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 145000.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 6550000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 115000.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.065557979
-      },
-      {
-        "feature": "views",
-        "threshold": 3.0,
-        "left": 9,
-        "right": 10,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.056810569
-      },
-      {
-        "leaf": true,
-        "value": -0.0153787183
-      },
-      {
-        "leaf": true,
-        "value": 0.0769044757
-      },
-      {
-        "leaf": true,
-        "value": 0.0012933861
-      },
-      {
-        "leaf": true,
-        "value": 0.0703801736
+        "value": -0.0942210034
       }
     ],
     [
       {
         "feature": "days_on_market",
-        "threshold": 1407.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "seller_adverts_count",
-        "threshold": 3.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0705622658
-      },
-      {
-        "feature": "has_phone",
-        "threshold": 1.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0758016929
-      },
-      {
-        "leaf": true,
-        "value": 0.00548942341
-      },
-      {
-        "leaf": true,
-        "value": -0.0177435447
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 5000000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 4500.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0466466509
-      },
-      {
-        "leaf": true,
-        "value": -0.068808116
-      },
-      {
-        "feature": "price",
-        "threshold": 145000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0146300392
-      },
-      {
-        "leaf": true,
-        "value": -0.0381251164
-      }
-    ],
-    [
-      {
-        "feature": "dealer_ratio",
-        "threshold": 3.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "capture_count",
-        "threshold": 7.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "seller_adverts_count",
-        "threshold": 4.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "capture_count",
-        "threshold": 4.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0666603297
-      },
-      {
-        "leaf": true,
-        "value": 0.0669033155
-      },
-      {
-        "leaf": true,
-        "value": 0.0302989222
-      },
-      {
-        "leaf": true,
-        "value": 0.00671639759
-      },
-      {
-        "leaf": true,
-        "value": -0.0702138841
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 33000.0,
+        "threshold": 8.0,
         "left": 1,
         "right": 2,
         "leaf": false
       },
       {
         "leaf": true,
-        "value": -0.0742074475
+        "value": -0.091675505
       },
       {
-        "feature": "price",
-        "threshold": 5000000.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 145000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 20000000.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0256083515
-      },
-      {
-        "leaf": true,
-        "value": -0.03561325
-      },
-      {
-        "leaf": true,
-        "value": 0.0543176532
-      },
-      {
-        "leaf": true,
-        "value": 0.0151574928
-      }
-    ],
-    [
-      {
-        "feature": "fav_count",
-        "threshold": 4.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "days_on_market",
-        "threshold": 1382.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0627976134
-      },
-      {
-        "feature": "capture_count",
-        "threshold": 7.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0670498013
-      },
-      {
-        "leaf": true,
-        "value": 0.00404789345
-      },
-      {
-        "leaf": true,
-        "value": 0.0578419343
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 1200000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "capture_count",
-        "threshold": 7.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 5000000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "seller_adverts_count",
-        "threshold": 784.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0681182817
-      },
-      {
-        "feature": "days_on_market",
-        "threshold": 1376.0,
-        "left": 9,
-        "right": 10,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 20000000.0,
-        "left": 11,
-        "right": 12,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0437670797
-      },
-      {
-        "leaf": true,
-        "value": 0.0564556606
-      },
-      {
-        "leaf": true,
-        "value": -0.0529626906
-      },
-      {
-        "leaf": true,
-        "value": 0.064094007
-      },
-      {
-        "leaf": true,
-        "value": 0.0476350971
-      },
-      {
-        "leaf": true,
-        "value": 0.0143323438
-      }
-    ],
-    [
-      {
-        "feature": "fav_count",
-        "threshold": 4.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "is_boost",
+        "feature": "views",
         "threshold": 1.0,
         "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0604983382
-      },
-      {
-        "feature": "capture_count",
-        "threshold": 7.0,
-        "left": 5,
         "right": 6,
         "leaf": false
       },
       {
-        "leaf": true,
-        "value": -0.0661450475
+        "feature": "price",
+        "threshold": 1700.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
       },
       {
         "leaf": true,
-        "value": 0.00595720345
+        "value": 0.0781643763
       },
       {
         "leaf": true,
-        "value": 0.0678337514
+        "value": 0.054838907
+      },
+      {
+        "leaf": true,
+        "value": -0.0830488726
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0878684819
+      },
+      {
+        "feature": "price",
+        "threshold": 15000.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 1300.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0756466538
+      },
+      {
+        "leaf": true,
+        "value": 0.0446353592
+      },
+      {
+        "leaf": true,
+        "value": -0.0844763666
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0846061781
+      },
+      {
+        "feature": "views",
+        "threshold": 1.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 1700.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0714354143
+      },
+      {
+        "leaf": true,
+        "value": 0.0361760408
+      },
+      {
+        "leaf": true,
+        "value": -0.0792435184
       }
     ],
     [
@@ -1207,477 +240,38 @@
         "feature": "has_phone",
         "threshold": 1.0,
         "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "seller_adverts_count",
-        "threshold": 784.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "fav_count",
-        "threshold": 4.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.00731468434
-      },
-      {
-        "leaf": true,
-        "value": 0.0485959612
-      },
-      {
-        "leaf": true,
-        "value": -0.0721421093
-      },
-      {
-        "leaf": true,
-        "value": 0.04060084
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 5000000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 127400.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 10500000.0,
-        "left": 5,
         "right": 6,
         "leaf": false
       },
       {
         "feature": "price",
-        "threshold": 4500.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0640239343
-      },
-      {
-        "leaf": true,
-        "value": 0.0589829497
-      },
-      {
-        "feature": "price",
-        "threshold": 16500000.0,
-        "left": 9,
-        "right": 10,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0630494282
-      },
-      {
-        "leaf": true,
-        "value": 0.00771903573
-      },
-      {
-        "leaf": true,
-        "value": -0.00284476089
-      },
-      {
-        "leaf": true,
-        "value": 0.0427043661
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 6550000.0,
-        "left": 1,
-        "right": 2,
+        "threshold": 15000.0,
+        "left": 2,
+        "right": 5,
         "leaf": false
       },
       {
         "feature": "price",
-        "threshold": 145000.0,
+        "threshold": 14000.0,
         "left": 3,
         "right": 4,
         "leaf": false
       },
       {
         "leaf": true,
-        "value": 0.0507888906
-      },
-      {
-        "feature": "price",
-        "threshold": 115000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
+        "value": 0.0433107987
       },
       {
         "leaf": true,
-        "value": -0.0647265539
+        "value": 0.0824094117
       },
       {
         "leaf": true,
-        "value": -0.0201880969
+        "value": -0.0799030885
       },
       {
         "leaf": true,
-        "value": 0.0713579282
-      }
-    ],
-    [
-      {
-        "feature": "capture_count",
-        "threshold": 7.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "capture_count",
-        "threshold": 5.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0602441691
-      },
-      {
-        "feature": "image_count",
-        "threshold": 1.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0599831641
-      },
-      {
-        "leaf": true,
-        "value": -0.00326357456
-      },
-      {
-        "leaf": true,
-        "value": 0.0223025605
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 5000000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 127400.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0526916459
-      },
-      {
-        "feature": "price",
-        "threshold": 4500.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.062210191
-      },
-      {
-        "leaf": true,
-        "value": -0.062412966
-      },
-      {
-        "leaf": true,
-        "value": 0.00688568968
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 1200000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 145000.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 5000000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 115000.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0585636199
-      },
-      {
-        "leaf": true,
-        "value": 0.0216377061
-      },
-      {
-        "leaf": true,
-        "value": 0.0509619191
-      },
-      {
-        "leaf": true,
-        "value": -0.0240469333
-      },
-      {
-        "leaf": true,
-        "value": 0.0714940131
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 5000000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 33000.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0499309674
-      },
-      {
-        "leaf": true,
-        "value": -0.0687322021
-      },
-      {
-        "feature": "price",
-        "threshold": 65000.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0301179197
-      },
-      {
-        "leaf": true,
-        "value": -0.0491621196
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 1200000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 75000.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "views",
-        "threshold": 3.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "is_boost",
-        "threshold": 1.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0666518733
-      },
-      {
-        "feature": "price",
-        "threshold": 16500000.0,
-        "left": 9,
-        "right": 10,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0659922287
-      },
-      {
-        "leaf": true,
-        "value": 0.00629861047
-      },
-      {
-        "leaf": true,
-        "value": -0.0635285005
-      },
-      {
-        "leaf": true,
-        "value": 0.0206996035
-      },
-      {
-        "leaf": true,
-        "value": 0.0385039449
-      }
-    ],
-    [
-      {
-        "feature": "price",
-        "threshold": 1200000.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 145000.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "views",
-        "threshold": 3.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "price",
-        "threshold": 115000.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0559006892
-      },
-      {
-        "feature": "price",
-        "threshold": 6550000.0,
-        "left": 9,
-        "right": 10,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": 0.0640444979
-      },
-      {
-        "leaf": true,
-        "value": -0.0126011912
-      },
-      {
-        "leaf": true,
-        "value": 0.0707330033
-      },
-      {
-        "leaf": true,
-        "value": -0.00160343049
-      },
-      {
-        "leaf": true,
-        "value": 0.0410202518
-      }
-    ],
-    [
-      {
-        "feature": "views",
-        "threshold": 74.0,
-        "left": 1,
-        "right": 2,
-        "leaf": false
-      },
-      {
-        "feature": "is_boost",
-        "threshold": 1.0,
-        "left": 3,
-        "right": 4,
-        "leaf": false
-      },
-      {
-        "feature": "views",
-        "threshold": 147.0,
-        "left": 5,
-        "right": 6,
-        "leaf": false
-      },
-      {
-        "feature": "capture_count",
-        "threshold": 7.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
-      },
-      {
-        "leaf": true,
-        "value": -0.0560050718
-      },
-      {
-        "leaf": true,
-        "value": 0.0313257575
-      },
-      {
-        "leaf": true,
-        "value": 0.0651558563
-      },
-      {
-        "leaf": true,
-        "value": -0.000686679792
-      },
-      {
-        "leaf": true,
-        "value": 0.0529890023
+        "value": -0.0809062868
       }
     ],
     [
@@ -1685,105 +279,1247 @@
         "feature": "image_count",
         "threshold": 1.0,
         "left": 1,
-        "right": 2,
+        "right": 8,
         "leaf": false
       },
       {
-        "leaf": true,
-        "value": -0.00306956074
+        "feature": "price",
+        "threshold": 1700.0,
+        "left": 2,
+        "right": 5,
+        "leaf": false
       },
       {
-        "feature": "is_boost",
-        "threshold": 1.0,
+        "feature": "price",
+        "threshold": 125.0,
         "left": 3,
         "right": 4,
         "leaf": false
       },
       {
-        "feature": "views",
-        "threshold": 3.0,
-        "left": 5,
-        "right": 6,
+        "leaf": true,
+        "value": 0.0616876371
+      },
+      {
+        "leaf": true,
+        "value": 0.041530285
+      },
+      {
+        "feature": "price",
+        "threshold": 9000.0,
+        "left": 6,
+        "right": 7,
         "leaf": false
       },
       {
-        "feature": "views",
-        "threshold": 138.0,
-        "left": 7,
-        "right": 8,
-        "leaf": false
+        "leaf": true,
+        "value": -0.0797666237
       },
       {
         "leaf": true,
-        "value": 0.048218444
+        "value": 0.0260770917
       },
       {
         "leaf": true,
-        "value": 0.0169406738
-      },
-      {
-        "leaf": true,
-        "value": -0.0588614158
-      },
-      {
-        "leaf": true,
-        "value": 0.0591911972
+        "value": -0.0786116198
       }
     ],
     [
       {
+        "feature": "has_phone",
+        "threshold": 1.0,
+        "left": 1,
+        "right": 6,
+        "leaf": false
+      },
+      {
         "feature": "price",
-        "threshold": 4500.0,
+        "threshold": 15000.0,
+        "left": 2,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 125.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0647566617
+      },
+      {
+        "leaf": true,
+        "value": 0.0345407389
+      },
+      {
+        "leaf": true,
+        "value": -0.0776762888
+      },
+      {
+        "leaf": true,
+        "value": -0.0764295012
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 9.0,
         "left": 1,
         "right": 2,
         "leaf": false
       },
       {
         "leaf": true,
-        "value": -0.0572225526
+        "value": -0.07753741
+      },
+      {
+        "feature": "image_count",
+        "threshold": 1.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 69.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0513253324
+      },
+      {
+        "leaf": true,
+        "value": 0.0751869157
+      },
+      {
+        "leaf": true,
+        "value": -0.0705359951
+      }
+    ],
+    [
+      {
+        "feature": "has_phone",
+        "threshold": 1.0,
+        "left": 1,
+        "right": 6,
+        "leaf": false
       },
       {
         "feature": "price",
-        "threshold": 7000.0,
+        "threshold": 15000.0,
+        "left": 2,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 1700.0,
         "left": 3,
         "right": 4,
         "leaf": false
       },
       {
         "leaf": true,
-        "value": 0.0885647759
+        "value": 0.044978492
       },
       {
-        "feature": "price",
-        "threshold": 33000.0,
-        "left": 5,
-        "right": 6,
+        "leaf": true,
+        "value": 0.00817115791
+      },
+      {
+        "leaf": true,
+        "value": -0.073984772
+      },
+      {
+        "leaf": true,
+        "value": -0.0725785568
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
         "leaf": false
       },
       {
         "leaf": true,
-        "value": -0.0656448007
+        "value": -0.0743844882
+      },
+      {
+        "feature": "views",
+        "threshold": 1.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 1700.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
       },
       {
         "leaf": true,
-        "value": 0.0225273576
+        "value": 0.0599989295
+      },
+      {
+        "leaf": true,
+        "value": 0.0267879255
+      },
+      {
+        "leaf": true,
+        "value": -0.0667997301
+      }
+    ],
+    [
+      {
+        "feature": "has_phone",
+        "threshold": 1.0,
+        "left": 1,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 15000.0,
+        "left": 2,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 9000.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0358656608
+      },
+      {
+        "leaf": true,
+        "value": 0.0685032681
+      },
+      {
+        "leaf": true,
+        "value": -0.0687219948
+      },
+      {
+        "leaf": true,
+        "value": -0.0693199709
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 9.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0722994357
+      },
+      {
+        "feature": "price",
+        "threshold": 15000.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 35.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0625175908
+      },
+      {
+        "leaf": true,
+        "value": 0.0438026302
+      },
+      {
+        "leaf": true,
+        "value": -0.0681736246
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0706717297
+      },
+      {
+        "feature": "views",
+        "threshold": 1.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 1700.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0577309988
+      },
+      {
+        "leaf": true,
+        "value": 0.0224603377
+      },
+      {
+        "leaf": true,
+        "value": -0.0628980994
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0690290481
+      },
+      {
+        "feature": "views",
+        "threshold": 1.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 33.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0555382147
+      },
+      {
+        "leaf": true,
+        "value": 0.0355716161
+      },
+      {
+        "leaf": true,
+        "value": -0.062416371
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0675924793
+      },
+      {
+        "feature": "views",
+        "threshold": 1.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 1300.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0524360724
+      },
+      {
+        "leaf": true,
+        "value": 0.0156204272
+      },
+      {
+        "leaf": true,
+        "value": -0.0609007776
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0667560771
+      },
+      {
+        "feature": "price",
+        "threshold": 15000.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 1700.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0510533154
+      },
+      {
+        "leaf": true,
+        "value": 0.0179137792
+      },
+      {
+        "leaf": true,
+        "value": -0.0646345168
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0657830983
+      },
+      {
+        "feature": "views",
+        "threshold": 1.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 33.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0536753796
+      },
+      {
+        "leaf": true,
+        "value": 0.020376835
+      },
+      {
+        "leaf": true,
+        "value": -0.0591105781
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0644151345
+      },
+      {
+        "feature": "price",
+        "threshold": 1700.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 68.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0451102294
+      },
+      {
+        "leaf": true,
+        "value": 0.0608049706
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 33.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0316427127
+      },
+      {
+        "leaf": true,
+        "value": -0.0788171515
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0636221021
+      },
+      {
+        "feature": "price",
+        "threshold": 15000.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 1700.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0431956053
+      },
+      {
+        "leaf": true,
+        "value": 0.0211615004
+      },
+      {
+        "leaf": true,
+        "value": -0.0625111386
+      }
+    ],
+    [
+      {
+        "feature": "has_phone",
+        "threshold": 1.0,
+        "left": 1,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 1.0,
+        "left": 2,
+        "right": 3,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0242831018
+      },
+      {
+        "leaf": true,
+        "value": -0.0491790585
+      },
+      {
+        "leaf": true,
+        "value": -0.0600442775
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0624432266
+      },
+      {
+        "feature": "views",
+        "threshold": 1.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 1700.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.047293257
+      },
+      {
+        "leaf": true,
+        "value": 0.0138216093
+      },
+      {
+        "leaf": true,
+        "value": -0.0549623147
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.061607521
+      },
+      {
+        "feature": "views",
+        "threshold": 1.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 35.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0473857932
+      },
+      {
+        "leaf": true,
+        "value": 0.0117172915
+      },
+      {
+        "leaf": true,
+        "value": -0.0554887243
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0609864183
+      },
+      {
+        "feature": "price",
+        "threshold": 1700.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 68.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0419535488
+      },
+      {
+        "leaf": true,
+        "value": 0.0575048514
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 33.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0194811057
+      },
+      {
+        "leaf": true,
+        "value": -0.0740073174
+      }
+    ],
+    [
+      {
+        "feature": "has_phone",
+        "threshold": 1.0,
+        "left": 1,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 1.0,
+        "left": 2,
+        "right": 3,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0181790572
+      },
+      {
+        "leaf": true,
+        "value": -0.0478232764
+      },
+      {
+        "leaf": true,
+        "value": -0.0576352365
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0600776933
+      },
+      {
+        "feature": "views",
+        "threshold": 1.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 68.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0280114319
+      },
+      {
+        "leaf": true,
+        "value": 0.0592461303
+      },
+      {
+        "leaf": true,
+        "value": -0.0522449724
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0593606606
+      },
+      {
+        "feature": "price",
+        "threshold": 15000.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 35.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0492432974
+      },
+      {
+        "leaf": true,
+        "value": 0.0303553343
+      },
+      {
+        "leaf": true,
+        "value": -0.0598587357
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 1700.0,
+        "left": 1,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 1200.0,
+        "left": 2,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 650.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0283339806
+      },
+      {
+        "leaf": true,
+        "value": -0.0191548523
+      },
+      {
+        "leaf": true,
+        "value": 0.0439162217
+      },
+      {
+        "feature": "price",
+        "threshold": 15000.0,
+        "left": 7,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 9000.0,
+        "left": 8,
+        "right": 9,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0679174662
+      },
+      {
+        "leaf": true,
+        "value": 0.029222548
+      },
+      {
+        "leaf": true,
+        "value": -0.0575352013
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0585508905
+      },
+      {
+        "feature": "views",
+        "threshold": 1.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 32.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00513590826
+      },
+      {
+        "leaf": true,
+        "value": 0.0408371352
+      },
+      {
+        "leaf": true,
+        "value": -0.0505393445
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0580441654
+      },
+      {
+        "feature": "price",
+        "threshold": 650.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 68.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0295835026
+      },
+      {
+        "leaf": true,
+        "value": 0.0572841465
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 64.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00379222329
+      },
+      {
+        "leaf": true,
+        "value": -0.0709004104
+      }
+    ],
+    [
+      {
+        "feature": "has_phone",
+        "threshold": 1.0,
+        "left": 1,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 15000.0,
+        "left": 2,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 14000.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00829394069
+      },
+      {
+        "leaf": true,
+        "value": 0.0595372319
+      },
+      {
+        "leaf": true,
+        "value": -0.0578944497
+      },
+      {
+        "leaf": true,
+        "value": -0.0548772812
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 1300.0,
+        "left": 1,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 1200.0,
+        "left": 2,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 650.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.02810058
+      },
+      {
+        "leaf": true,
+        "value": -0.0275004655
+      },
+      {
+        "leaf": true,
+        "value": 0.0477758236
+      },
+      {
+        "feature": "price",
+        "threshold": 15000.0,
+        "left": 7,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 9000.0,
+        "left": 8,
+        "right": 9,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0712563023
+      },
+      {
+        "leaf": true,
+        "value": 0.0326170251
+      },
+      {
+        "leaf": true,
+        "value": -0.0558522604
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0572869554
+      },
+      {
+        "feature": "views",
+        "threshold": 1.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 69.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0268326439
+      },
+      {
+        "leaf": true,
+        "value": 0.0547915883
+      },
+      {
+        "leaf": true,
+        "value": -0.0503870025
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 9.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0578368194
+      },
+      {
+        "feature": "price",
+        "threshold": 15000.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 33.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0420702212
+      },
+      {
+        "leaf": true,
+        "value": 0.0138075342
+      },
+      {
+        "leaf": true,
+        "value": -0.0555585884
+      }
+    ],
+    [
+      {
+        "feature": "has_phone",
+        "threshold": 1.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0145987868
+      },
+      {
+        "leaf": true,
+        "value": -0.053389322
+      }
+    ],
+    [
+      {
+        "feature": "has_phone",
+        "threshold": 1.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0160280354
+      },
+      {
+        "leaf": true,
+        "value": -0.0530843101
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0561076514
+      },
+      {
+        "feature": "price",
+        "threshold": 15000.0,
+        "left": 3,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 9000.0,
+        "left": 4,
+        "right": 5,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0261464845
+      },
+      {
+        "leaf": true,
+        "value": 0.0532866977
+      },
+      {
+        "leaf": true,
+        "value": -0.0549455956
       }
     ]
   ],
-  "baseScore": 0.5,
+  "baseScore": 0.0,
   "metrics": {
-    "auc": 0.681640625,
-    "accuracy": 0.9038461538461539,
-    "baseline_accuracy": 0.9230769230769231,
-    "lift": -0.019230769230769273,
-    "f1": 0.44444444395061733,
-    "optimal_threshold": 0.5746369957923889,
-    "accuracy_at_0_5": 0.8653846153846154,
-    "f1_at_0_5": 0.36363636363636365,
-    "n_train": 412,
-    "n_val": 104,
+    "auc": 0.697735628342246,
+    "accuracy": 0.5944444444444444,
+    "baseline_accuracy": 0.7555555555555555,
+    "lift": -0.1611111111111111,
+    "f1": 0.4859154925300535,
+    "optimal_threshold": 0.6081877946853638,
+    "n_train": 758,
+    "n_val": 360,
+    "n_trees": 37,
     "n_positive_train": 25,
-    "n_positive_val": 8,
-    "best_iteration": 6
+    "n_positive_val": 88,
+    "best_iteration": 6,
+    "target": "motivated_seller"
   }
 }

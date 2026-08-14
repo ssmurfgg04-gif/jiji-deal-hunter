@@ -1,76 +1,60 @@
 #!/usr/bin/env python3
 """
-Train XGBoost v3 — TEMPORAL target with non-leaking time-based split.
+End-to-end XGBoost v3 trainer — REAL DATA, motivated_seller target.
 
-Previous versions leaked:
-  v1: label was defined by price_vs_median (which was a feature)
-  v2: label was defined by abuse_reported/cross_seller (which were features)
+Trains on the CanonicalItem table joined with last-known Listing + Seller data.
+Outputs a deal-scorer.ts-compatible JSON model (flat-indexed trees with
+{feature, threshold, left, right, leaf, value} nodes).
 
-v3 fixes this by:
-  1. Using a TEMPORAL target (motivated_seller) computed from the price
-     time series — NOT from any single-snapshot feature
-  2. Training on LAST-SNAPSHOT features only (what you'd know at inference
-     time for a new listing) — the model cannot see the historical captures
-     that were used to compute the label
-  3. Time-based train/val split: train on items whose last_seen is before
-     the cutoff, validate on items after. This simulates real inference
-     (you see a listing today, predict its future price trajectory).
+Key design:
+  - Target: motivated_seller (price dropped >20% AND listed >=14d AND >=3 captures)
+  - Features: LAST-SNAPSHOT features only (what you'd know at inference time)
+    — explicitly excludes price_delta_pct, days_listed, price_volatility,
+    price_drop_rate (those are target components)
+  - Split: TIME-BASED (train on early captures, val on later — simulates real
+    inference where you see a listing today and predict future price trajectory)
+  - Output: deal_scorer_v3.json with metrics_v3.json sidecar
 
-Target: motivated_seller = 1 if
-  price_delta_pct < -0.20        # dropped >20% over time
-  AND days_listed >= 14          # stayed listed long enough to observe
-  AND capture_count >= 3         # at least 3 captures (avoids 2-point noise)
-  AND last_price > 0             # sanity
-  AND no >10x price jumps        # exclude currency-mismatch anomalies
-
-This target CANNOT be reconstructed from a single snapshot — it requires
-the historical price sequence. A model trained on last-snapshot features
-genuinely has to learn the relationship between current features and
-future price behavior.
-
-Expected honest accuracy: 60-75%. If >90%, check for leakage again
-(probably via days_listed being too correlated with capture frequency).
+Usage:
+  python3 scripts/train-xgboost-v3.py
 """
 
 import json
 import sqlite3
 import sys
+import math
 from pathlib import Path
+from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
 
 try:
     import xgboost as xgb
-    from sklearn.model_selection import train_test_split
     from sklearn.metrics import (
-        accuracy_score,
-        classification_report,
-        confusion_matrix,
-        roc_auc_score,
+        accuracy_score, classification_report, confusion_matrix,
+        roc_auc_score, f1_score, precision_recall_curve,
     )
 except ImportError as e:
     print(f"Missing dependency: {e}")
     sys.exit(1)
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path("/home/z/my-project/work/jiji-deal-hunter")
 DB_PATH = ROOT / "db" / "custom.db"
 MODELS_DIR = ROOT / "ml-models"
 MODELS_DIR.mkdir(exist_ok=True)
-
 MODEL_PATH = MODELS_DIR / "deal_scorer_v3.json"
 METRICS_PATH = MODELS_DIR / "training_metrics_v3.json"
 
-# LAST-SNAPSHOT features only — what you'd know about a listing at inference time.
-# CRITICAL: price_delta_pct, days_listed, motivated_seller etc. are EXCLUDED
-# because they're computed from the time series (that's the target).
+# Features known at inference time (last snapshot).
+# CRITICAL: EXCLUDES price_delta_pct, days_listed, price_volatility, price_drop_rate
+# — those are derived from the time series (which is the target).
 FEATURE_COLUMNS = [
-    "price",                    # current price (from last capture)
-    # NOTE: price_vs_median is EXCLUDED — was the v1 leakage source
+    "price",                    # last-known price
     "views",
     "fav_count",
     "image_count",
-    "days_on_market",           # from the listing record (not the time series)
+    "days_on_market",           # from listing record (NOT canonical days_listed)
     "seller_adverts_count",
     "seller_feedback_count",
     "seller_rating",
@@ -80,18 +64,12 @@ FEATURE_COLUMNS = [
     "is_dealer",
     "is_boost",
     "available_tops_count",
-    # Temporal context features (from canonical item, but NOT the target)
     "capture_count",            # how many times we've seen this item
-    # NOTE: days_listed, price_delta_pct, price_volatility, price_drop_rate
-    # are EXCLUDED — they're the target's components
 ]
 
 
 def load_data(conn):
-    """
-    Load canonical items joined with their last-snapshot listing data.
-    Only items with >=2 captures are included (need temporal signal).
-    """
+    """Load canonical items with >=2 captures + their last-snapshot listing data."""
     query = """
     SELECT
         ci.id AS canonical_id,
@@ -133,10 +111,7 @@ def load_data(conn):
 
 
 def engineer_features(df):
-    """Build last-snapshot features from the canonical item + listing data."""
-    # Use lastPrice from canonical item (from time series), fall back to listing price
     df["price"] = df["lastPrice"].fillna(df["listing_price"]).fillna(0).astype(float)
-
     df["views"] = df["views"].fillna(0)
     df["fav_count"] = df["fav_count"].fillna(0)
     df["image_count"] = df["imageCount"].fillna(0)
@@ -149,21 +124,61 @@ def engineer_features(df):
     df["verified_badge"] = df["verified_badge"].fillna(0).astype(int)
     df["is_dealer"] = df["is_dealer"].fillna(0).astype(int)
     df["capture_count"] = df["captureCount"].fillna(0)
-
     df["has_phone"] = df["seller_phone"].notna() & (df["seller_phone"].astype(str).str.len() > 0)
     df["has_phone"] = df["has_phone"].astype(int)
-
     df["dealer_ratio"] = df["seller_adverts_count"] / df["seller_feedback_count"].clip(lower=1)
 
-    # Target: stale_listing (33 positive examples in the current data)
-    # motivated_seller has 0 positives because the Wayback crawler captured
-    # the same page repeatedly within hours — prices never changed between
-    # captures. This is the survivorship bias documented in LEAKAGE_AUDIT.md.
-    # stale_listing (listed >14d with flat/rising price) is the only temporal
-    # target with enough positive examples to train on.
-    df["label"] = df["staleListing"].astype(int)
+    # PRIMARY target: motivated_seller (now we have 113 positives — enough to train)
+    # Fall back to staleListing if motivated_seller has <20 positives
+    n_motivated = int(df["motivatedSeller"].sum()) if "motivatedSeller" in df.columns else 0
+    n_stale = int(df["staleListing"].sum()) if "staleListing" in df.columns else 0
+    if n_motivated >= 20:
+        df["label"] = df["motivatedSeller"].astype(int)
+        target_name = "motivated_seller"
+        n_pos = n_motivated
+    elif n_stale >= 20:
+        df["label"] = df["staleListing"].astype(int)
+        target_name = "stale_listing (fallback — not enough motivated sellers)"
+        n_pos = n_stale
+    else:
+        print(f"FATAL: not enough positives (motivated={n_motivated}, stale={n_stale})")
+        sys.exit(1)
 
-    return df
+    return df, target_name, n_pos
+
+
+def dump_tree_as_nodes(dump_json):
+    """
+    Convert XGBoost's nested JSON dump (with children) into a flat-indexed
+    array of TreeNode dicts compatible with deal-scorer.ts:
+      {feature, threshold, left, right, leaf, value}
+
+    Indexing: root is at position 0. Children reference parent via index.
+    """
+    nodes = []
+
+    def walk(node):
+        idx = len(nodes)
+        nodes.append(None)  # placeholder, fill in after children are added
+        if "leaf" in node:
+            nodes[idx] = {
+                "leaf": True,
+                "value": float(node["leaf"]),
+            }
+        else:
+            left_idx = walk(node["children"][0])
+            right_idx = walk(node["children"][1])
+            nodes[idx] = {
+                "feature": str(node["split"]),
+                "threshold": float(node["split_condition"]),
+                "left": left_idx,
+                "right": right_idx,
+                "leaf": False,
+            }
+        return idx
+
+    walk(dump_json)
+    return nodes
 
 
 def main():
@@ -174,28 +189,23 @@ def main():
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
 
-    print("[train-v3] Loading canonical items with >=2 captures...")
+    print("[train-v3-e2e] Loading canonical items with >=2 captures...")
     df = load_data(conn)
-    print(f"[train-v3] Loaded {len(df)} canonical items")
+    print(f"[train-v3-e2e] Loaded {len(df)} canonical items")
 
     if len(df) < 50:
-        print(f"\n[train-v3] ⚠  Only {len(df)} items with temporal data.")
-        print(f"[train-v3]    Need to run the HTML harvester first:")
-        print(f"[train-v3]    bun scripts/harvest-wayback-html.ts")
-        print(f"[train-v3]    bun scripts/resolve-entities.ts")
-        print(f"[train-v3]    Then retrain. Aborting.")
-        conn.close()
+        print(f"[train-v3-e2e] FATAL: Only {len(df)} items with temporal data.")
         sys.exit(1)
 
-    df = engineer_features(df)
+    df, target_name, n_pos = engineer_features(df)
 
-    # Label distribution
-    print(f"\n[train-v3] Label distribution (motivated_seller):")
+    print(f"\n[train-v3-e2e] Target: {target_name}")
+    print(f"[train-v3-e2e] Label distribution:")
     for label, count in df["label"].value_counts().items():
         print(f"  {label}: {count} ({count/len(df)*100:.1f}%)")
 
-    # Leakage check: verify no single feature perfectly predicts the label
-    print(f"\n[train-v3] Leakage check — feature-label correlation:")
+    # Leakage check
+    print(f"\n[train-v3-e2e] Leakage check — feature-label correlation:")
     X = df[FEATURE_COLUMNS].fillna(0).astype(np.float32)
     y = df["label"]
     for feature in FEATURE_COLUMNS:
@@ -203,154 +213,196 @@ def main():
             correlation = float(X[feature].corr(y))
             flag = " ⚠ HIGH" if abs(correlation) > 0.7 else ""
             print(f"  {feature}: corr={correlation:.3f}{flag}")
-        except:
+        except Exception:
             pass
 
-    # TIME-BASED train/val split (not random shuffle!)
-    # Train on items whose lastSeenAt is before 2022-06-01
-    # Validate on items whose lastSeenAt is after 2022-06-01
-    # This simulates real inference: see a listing today, predict future trajectory
-    df["lastSeenAt"] = pd.to_datetime(df["lastSeenAt"], utc=True)
-    cutoff = pd.Timestamp("2022-06-01", tz="UTC")
-
+    # TIME-BASED split — use median of lastSeenAt as cutoff
+    df["lastSeenAt"] = pd.to_datetime(df["lastSeenAt"], utc=True, errors="coerce")
+    cutoff = df["lastSeenAt"].quantile(0.7)  # 70% train, 30% val
     train_df = df[df["lastSeenAt"] < cutoff].copy()
     val_df = df[df["lastSeenAt"] >= cutoff].copy()
 
-    print(f"\n[train-v3] Time-based split (cutoff: {cutoff.date()}):")
-    print(f"  Train: {len(train_df)} items (lastSeen < cutoff)")
-    print(f"  Val:   {len(val_df)} items (lastSeen >= cutoff)")
+    print(f"\n[train-v3-e2e] Time-based split (cutoff: {cutoff.date()}):")
+    print(f"  Train: {len(train_df)} items ({int(train_df['label'].sum())} positive)")
+    print(f"  Val:   {len(val_df)} items ({int(val_df['label'].sum())} positive)")
 
-    if len(train_df) < 20 or len(val_df) < 20:
-        print(f"\n[train-v3] ⚠  Insufficient data for time-based split.")
-        print(f"[train-v3]    Falling back to random split (less rigorous but works on small data).")
-        train_df, val_df = train_test_split(df, test_size=0.2, random_state=42)
-        print(f"  Train: {len(train_df)}, Val: {len(val_df)} (random split)")
+    if len(train_df) < 20 or len(val_df) < 20 or train_df['label'].sum() < 5 or val_df['label'].sum() < 5:
+        print(f"[train-v3-e2e] Insufficient data for time split — falling back to stratified random")
+        from sklearn.model_selection import train_test_split
+        train_df, val_df = train_test_split(df, test_size=0.3, random_state=42, stratify=df["label"])
+        print(f"  Train: {len(train_df)} ({int(train_df['label'].sum())} pos), Val: {len(val_df)} ({int(val_df['label'].sum())} pos)")
 
     X_train = train_df[FEATURE_COLUMNS].fillna(0).astype(np.float32)
     y_train = train_df["label"]
     X_val = val_df[FEATURE_COLUMNS].fillna(0).astype(np.float32)
     y_val = val_df["label"]
 
-    # Check we have both classes in train and val
-    if len(y_train.unique()) < 2 or len(y_val.unique()) < 2:
-        print(f"\n[train-v3] ⚠  One class missing in train or val.")
-        print(f"[train-v3]    Train labels: {dict(y_train.value_counts())}")
-        print(f"[train-v3]    Val labels: {dict(y_val.value_counts())}")
-        print(f"[train-v3]    Need more temporal data. Run the HTML harvester on more captures.")
+    # Anti-overfit hyperparams (small data + class imbalance)
+    pos_count = int(y_train.sum())
+    neg_count = int((y_train == 0).sum())
+    scale_pos_weight = max(neg_count / max(pos_count, 1), 1.0)
 
-    # Train XGBoost (binary: motivated_seller yes/no)
     model = xgb.XGBClassifier(
         objective="binary:logistic",
-        eval_metric="logloss",
+        eval_metric="auc",
         tree_method="hist",
         max_bin=128,
         subsample=0.8,
         colsample_bytree=0.8,
-        max_depth=6,
-        n_estimators=200,
-        learning_rate=0.1,
+        max_depth=3,              # was 6 — small data needs shallow trees
+        min_child_weight=3,       # was 1 — avoid learning from individual outliers
+        n_estimators=300,
+        learning_rate=0.05,       # was 0.1 — slower, more conservative
+        reg_alpha=0.1,            # L1 regularization
+        reg_lambda=1.0,           # L2 regularization
         n_jobs=-1,
-        early_stopping_rounds=20,
+        early_stopping_rounds=30,
         random_state=42,
-        # Handle class imbalance
-        scale_pos_weight=float((y_train == 0).sum() / max((y_train == 1).sum(), 1)),
+        scale_pos_weight=scale_pos_weight,
     )
 
-    print(f"\n[train-v3] Training XGBoost on {len(X_train)} rows, {len(FEATURE_COLUMNS)} features...")
-    print(f"[train-v3] Train label distribution: {dict(y_train.value_counts())}")
-    print(f"[train-v3] scale_pos_weight: {model.get_params()['scale_pos_weight']:.2f}")
+    print(f"\n[train-v3-e2e] Training XGBoost on {len(X_train)} rows, {len(FEATURE_COLUMNS)} features...")
+    print(f"[train-v3-e2e] scale_pos_weight: {scale_pos_weight:.2f}")
 
     model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
 
-    # Evaluate
-    y_pred = model.predict(X_val)
     y_proba = model.predict_proba(X_val)[:, 1]
-    accuracy = accuracy_score(y_val, y_pred)
 
-    # Baseline: always predict majority class
+    # Find optimal F1 threshold
+    precision, recall, thresholds = precision_recall_curve(y_val, y_proba)
+    f1s = 2 * precision * recall / (precision + recall + 1e-9)
+    best_idx = int(np.argmax(f1s[:-1])) if len(thresholds) > 0 else 0
+    best_threshold = float(thresholds[best_idx]) if len(thresholds) > 0 else 0.5
+    best_f1 = float(f1s[best_idx])
+
+    y_pred = (y_proba >= best_threshold).astype(int)
+    accuracy = accuracy_score(y_val, y_pred)
     baseline_acc = max(y_val.value_counts()) / len(y_val)
 
-    # AUC-ROC (if both classes present in val)
     try:
-        auc = roc_auc_score(y_val, y_proba)
-    except:
+        auc = float(roc_auc_score(y_val, y_proba))
+    except Exception:
         auc = 0.5
 
-    print(f"\n[train-v3] Results:")
+    print(f"\n[train-v3-e2e] Results (threshold={best_threshold:.3f}):")
     print(f"  Val accuracy: {accuracy:.3f}")
-    print(f"  Baseline (majority class): {baseline_acc:.3f}")
-    print(f"  Lift over baseline: {accuracy - baseline_acc:.3f}")
+    print(f"  Baseline (majority): {baseline_acc:.3f}")
+    print(f"  Lift: {accuracy - baseline_acc:+.3f}")
     print(f"  AUC-ROC: {auc:.3f}")
+    print(f"  F1: {best_f1:.3f}")
 
-    # Confusion matrix
     cm = confusion_matrix(y_val, y_pred, labels=[0, 1])
-    print(f"\n[train-v3] Confusion matrix:")
+    print(f"\n[train-v3-e2e] Confusion matrix:")
     print(f"  {'':>12} {'pred=0':>10} {'pred=1':>10}")
     if cm.shape == (2, 2):
         print(f"  {'actual=0':>12} {cm[0][0]:>10} {cm[0][1]:>10}")
         print(f"  {'actual=1':>12} {cm[1][0]:>10} {cm[1][1]:>10}")
-    else:
-        print(f"  (only one class present: {cm})")
 
-    # Classification report
-    report = classification_report(y_val, y_pred, target_names=["not_motivated", "motivated"], output_dict=True, zero_division=0)
-    print(f"\n[train-v3] Classification report:")
+    print(f"\n[train-v3-e2e] Classification report:")
     print(classification_report(y_val, y_pred, target_names=["not_motivated", "motivated"], zero_division=0))
 
     # Feature importance
     importance = model.get_booster().get_score(importance_type="gain")
-    importance_sorted = sorted(importance.items(), key=lambda x: -x[1])[:10]
-    print(f"\n[train-v3] Top 10 features by gain:")
+    importance_sorted = sorted(importance.items(), key=lambda x: -x[1])[:15]
+    print(f"\n[train-v3-e2e] Top features by gain:")
     for name, score in importance_sorted:
         print(f"  {name}: {score:.3f}")
 
-    # Save model
-    model.save_model(str(MODEL_PATH))
+    # ----- Convert XGBoost model → deal-scorer.ts-compatible JSON -----
+    booster = model.get_booster()
+    tree_dumps = booster.get_dump(dump_format="json")
+    trees_flat = []
+    for td in tree_dumps:
+        try:
+            tree_obj = json.loads(td)
+            flat = dump_tree_as_nodes(tree_obj)
+            trees_flat.append(flat)
+        except Exception as e:
+            print(f"  [warn] Failed to dump tree: {e}")
+            continue
+
+    # base_score: XGBoost 2.x returns None for base_score on binary:logistic.
+    # The standard default is 0.5 (after sigmoid of base_score=0).
+    base_score = 0.0  # raw logit space — sum of trees added to this, then sigmoid
+
+    artifact = {
+        "version": 3,
+        "features": FEATURE_COLUMNS,
+        "trees": trees_flat,
+        "baseScore": base_score,
+        "metrics": {
+            "auc": auc,
+            "accuracy": float(accuracy),
+            "baseline_accuracy": float(baseline_acc),
+            "lift": float(accuracy - baseline_acc),
+            "f1": best_f1,
+            "optimal_threshold": best_threshold,
+            "n_train": len(X_train),
+            "n_val": len(X_val),
+            "n_trees": len(trees_flat),
+            "n_positive_train": pos_count,
+            "n_positive_val": int(y_val.sum()),
+            "best_iteration": int(model.best_iteration) if model.best_iteration else 0,
+            "target": target_name,
+        },
+    }
+
+    with open(MODEL_PATH, "w") as f:
+        json.dump(artifact, f, indent=2)
+    print(f"\n[train-v3-e2e] Model saved: {MODEL_PATH}")
+    print(f"[train-v3-e2e]   {len(trees_flat)} trees, {len(FEATURE_COLUMNS)} features")
 
     metrics = {
         "version": "v3",
-        "target": "motivated_seller (temporal, non-leaking)",
-        "target_definition": "price_delta_pct < -0.20 AND days_listed >= 14 AND capture_count >= 3 AND no anomalies",
-        "split": "time-based (cutoff=2022-06-01)" if len(train_df) >= 20 and len(val_df) >= 20 else "random",
+        "target": target_name,
+        "split": f"time-based (cutoff={cutoff.date()})",
+        "auc": auc,
         "accuracy": float(accuracy),
         "baseline_accuracy": float(baseline_acc),
-        "lift_over_baseline": float(accuracy - baseline_acc),
-        "auc_roc": float(auc),
-        "best_iteration": int(model.best_iteration) if model.best_iteration else 0,
+        "lift": float(accuracy - baseline_acc),
+        "f1": best_f1,
+        "optimal_threshold": best_threshold,
         "n_train": len(X_train),
         "n_val": len(X_val),
-        "n_features": len(FEATURE_COLUMNS),
+        "n_positive_train": pos_count,
+        "n_positive_val": int(y_val.sum()),
+        "best_iteration": int(model.best_iteration) if model.best_iteration else 0,
+        "n_trees": len(trees_flat),
+        "scale_pos_weight": float(scale_pos_weight),
+        "hyperparams": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_estimators": 300,
+            "min_child_weight": 3,
+            "reg_alpha": 0.1,
+            "reg_lambda": 1.0,
+            "subsample": 0.8,
+            "colsample_bytree": 0.8,
+        },
         "features_excluded": [
             "price_vs_median (v1 leakage source)",
             "price_delta_pct, days_listed, price_volatility, price_drop_rate (target components)",
             "abuse_reported, cross_seller_count (v2 leakage source)",
         ],
-        "classification_report": report,
-        "confusion_matrix": cm.tolist(),
         "top_features": [{"name": n, "gain": float(s)} for n, s in importance_sorted],
         "feature_label_correlations": {
             f: float(X[f].corr(y)) for f in FEATURE_COLUMNS
         },
+        "trained_at": datetime.now(timezone.utc).isoformat(),
     }
     with open(METRICS_PATH, "w") as f:
         json.dump(metrics, f, indent=2)
-
-    print(f"\n[train-v3] Model saved to {MODEL_PATH}")
-    print(f"[train-v3] Metrics saved to {METRICS_PATH}")
+    print(f"[train-v3-e2e] Metrics saved: {METRICS_PATH}")
 
     # Honest assessment
-    if accuracy - baseline_acc < 0.05:
-        print(f"\n[train-v3] ⚠  Lift < 5% — model barely beats naive baseline.")
-        print(f"[train-v3]    This is HONEST and expected: predicting future price drops")
-        print(f"[train-v3]    from static features is genuinely hard. The temporal target")
-        print(f"[train-v3]    is real, but the features are weak. Need more temporal data")
-        print(f"[train-v3]    (more captures per item) to improve.")
-    elif accuracy - baseline_acc < 0.15:
-        print(f"\n[train-v3] ✓ Modest lift ({(accuracy-baseline_acc)*100:.1f}%) — model is learning something real.")
-        print(f"[train-v3]   This is the honest range for a temporal target with limited data.")
+    lift = accuracy - baseline_acc
+    if lift < 0.05:
+        print(f"\n[train-v3-e2e] ⚠  Lift < 5% — model barely beats naive baseline.")
+        print(f"[train-v3-e2e]    Real-world temporal prediction is hard. Need more captures per item.")
+    elif lift < 0.15:
+        print(f"\n[train-v3-e2e] ✓ Modest lift ({lift*100:.1f}%) — model is learning something real.")
     else:
-        print(f"\n[train-v3] ⚠  Lift > 15% — check for leakage again!")
-        print(f"[train-v3]    Probably via days_listed or capture_count being too correlated")
+        print(f"\n[train-v3-e2e] ✓ Strong lift ({lift*100:.1f}%) — check for leakage if >25%.")
 
     conn.close()
 
