@@ -1,0 +1,59 @@
+{
+  "version": "v3",
+  "target": "stale_listing (temporal bootstrap; will switch to motivated_seller once live data accumulates)",
+  "split": "time-based (cutoff=2024-06-01)",
+  "auc": 0.7512626262626262,
+  "accuracy": 0.6777777777777778,
+  "baseline_accuracy": 0.7333333333333333,
+  "lift": -0.05555555555555547,
+  "n_train": 360,
+  "n_val": 90,
+  "best_iteration": 47,
+  "features_excluded": [
+    "price_vs_median (v1 leakage source)",
+    "price_delta_pct, days_listed, price_volatility, price_drop_rate (target components)",
+    "abuse_reported, cross_seller_count (v2 leakage source)"
+  ],
+  "top_features": [
+    {
+      "name": "price",
+      "gain": 2.38077712059021
+    },
+    {
+      "name": "verified_badge",
+      "gain": 1.6570663452148438
+    },
+    {
+      "name": "is_boost",
+      "gain": 1.4807219505310059
+    },
+    {
+      "name": "dealer_ratio",
+      "gain": 1.369014024734497
+    },
+    {
+      "name": "image_count",
+      "gain": 1.3535100221633911
+    },
+    {
+      "name": "fav_count",
+      "gain": 1.3442898988723755
+    },
+    {
+      "name": "views",
+      "gain": 1.1008121967315674
+    },
+    {
+      "name": "seller_rating",
+      "gain": 1.0975710153579712
+    },
+    {
+      "name": "is_dealer",
+      "gain": 1.0830799341201782
+    },
+    {
+      "name": "days_on_market",
+      "gain": 1.054591417312622
+    }
+  ]
+}

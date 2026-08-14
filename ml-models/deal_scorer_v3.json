@@ -1,0 +1,8712 @@
+{
+  "version": 3,
+  "features": [
+    "price",
+    "views",
+    "fav_count",
+    "image_count",
+    "days_on_market",
+    "seller_adverts_count",
+    "seller_feedback_count",
+    "seller_rating",
+    "dealer_ratio",
+    "has_phone",
+    "verified_badge",
+    "is_dealer",
+    "is_boost",
+    "available_tops_count",
+    "capture_count"
+  ],
+  "trees": [
+    [
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.753424644,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "is_dealer",
+        "threshold": 1.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 168.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.15027599
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 98.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 58.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 16.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0448015146
+      },
+      {
+        "leaf": true,
+        "value": 0.058983665
+      },
+      {
+        "feature": "image_count",
+        "threshold": 2.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0603773594
+      },
+      {
+        "leaf": true,
+        "value": -0.0310289897
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 73.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 5.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.120734505
+      },
+      {
+        "leaf": true,
+        "value": 0.00814814866
+      },
+      {
+        "leaf": true,
+        "value": -0.0234685075
+      },
+      {
+        "leaf": true,
+        "value": 0.0893950164
+      },
+      {
+        "leaf": true,
+        "value": -0.0273176078
+      },
+      {
+        "leaf": true,
+        "value": -0.0795969814
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 296279.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.961538434,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2868802.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 3152.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 3152.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 6.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0374687053
+      },
+      {
+        "leaf": true,
+        "value": -0.0505587868
+      },
+      {
+        "leaf": true,
+        "value": -0.12899898
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 29.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 72.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 141.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.161384881
+      },
+      {
+        "feature": "verified_badge",
+        "threshold": 1.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0925955921
+      },
+      {
+        "leaf": true,
+        "value": 0.00319884275
+      },
+      {
+        "feature": "image_count",
+        "threshold": 4.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 1849.0,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 1769.0,
+        "left": 27,
+        "right": 28,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0793611333
+      },
+      {
+        "leaf": true,
+        "value": 0.102671541
+      },
+      {
+        "leaf": true,
+        "value": -0.063989453
+      },
+      {
+        "leaf": true,
+        "value": 0.0383994319
+      },
+      {
+        "leaf": true,
+        "value": 0.141018942
+      },
+      {
+        "leaf": true,
+        "value": -0.0406031273
+      },
+      {
+        "leaf": true,
+        "value": 0.0690353736
+      },
+      {
+        "leaf": true,
+        "value": -0.0399557911
+      },
+      {
+        "leaf": true,
+        "value": -0.134382665
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 2868802.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 316875.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4232.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 52.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 1792356.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 1022.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 12513440.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 17.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 3544.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 47.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 114.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 905.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.15844053
+      },
+      {
+        "leaf": true,
+        "value": 0.0165753439
+      },
+      {
+        "leaf": true,
+        "value": -0.0467904396
+      },
+      {
+        "leaf": true,
+        "value": -0.0687298253
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 7.0,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 46.0,
+        "left": 27,
+        "right": 28,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 170.0,
+        "left": 29,
+        "right": 30,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 70.0,
+        "left": 31,
+        "right": 32,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 176.0,
+        "left": 33,
+        "right": 34,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 6.0,
+        "left": 35,
+        "right": 36,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.000498596171
+      },
+      {
+        "leaf": true,
+        "value": 0.0969808176
+      },
+      {
+        "leaf": true,
+        "value": -0.0409479178
+      },
+      {
+        "leaf": true,
+        "value": 0.0649818778
+      },
+      {
+        "leaf": true,
+        "value": -0.0433527268
+      },
+      {
+        "leaf": true,
+        "value": -0.130988985
+      },
+      {
+        "leaf": true,
+        "value": -0.0268692672
+      },
+      {
+        "leaf": true,
+        "value": 0.00352433627
+      },
+      {
+        "leaf": true,
+        "value": -0.0843594
+      },
+      {
+        "leaf": true,
+        "value": -0.0679696873
+      },
+      {
+        "leaf": true,
+        "value": 0.025098253
+      },
+      {
+        "leaf": true,
+        "value": 0.117162161
+      },
+      {
+        "leaf": true,
+        "value": 0.00741000613
+      },
+      {
+        "leaf": true,
+        "value": -0.0275934674
+      },
+      {
+        "leaf": true,
+        "value": -0.119311146
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 2953829.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.753424644,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 18.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 90.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 296279.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.03776896
+      },
+      {
+        "feature": "image_count",
+        "threshold": 8.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 412682.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.107658438
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.961538434,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 141.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 1.19000006,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.00382252946
+      },
+      {
+        "leaf": true,
+        "value": 0.0447754748
+      },
+      {
+        "leaf": true,
+        "value": -0.043669384
+      },
+      {
+        "leaf": true,
+        "value": -0.0162178613
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 51.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.43000007,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 22.0,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0559722967
+      },
+      {
+        "leaf": true,
+        "value": 0.155522704
+      },
+      {
+        "leaf": true,
+        "value": -0.119533144
+      },
+      {
+        "leaf": true,
+        "value": -0.0170897245
+      },
+      {
+        "leaf": true,
+        "value": -0.11665263
+      },
+      {
+        "leaf": true,
+        "value": 0.0183747374
+      },
+      {
+        "leaf": true,
+        "value": -0.0486209169
+      },
+      {
+        "leaf": true,
+        "value": 0.105287492
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 316875.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 2.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4463.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0111065349
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.648351669,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2868802.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 20.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00886794273
+      },
+      {
+        "feature": "views",
+        "threshold": 4319.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2214520.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 8.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0153074237
+      },
+      {
+        "leaf": true,
+        "value": -0.0715458617
+      },
+      {
+        "leaf": true,
+        "value": -0.111862458
+      },
+      {
+        "leaf": true,
+        "value": -0.0162863191
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 106.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 2.04597712,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4045.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0302630756
+      },
+      {
+        "leaf": true,
+        "value": 0.0040988382
+      },
+      {
+        "leaf": true,
+        "value": 0.103777267
+      },
+      {
+        "leaf": true,
+        "value": 0.0289017297
+      },
+      {
+        "leaf": true,
+        "value": -0.0786966607
+      },
+      {
+        "leaf": true,
+        "value": 0.127758011
+      },
+      {
+        "leaf": true,
+        "value": 0.0109154843
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 316875.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 89.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2953829.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0960082412
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 120.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 141.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 18.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0620513074
+      },
+      {
+        "feature": "views",
+        "threshold": 3152.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 79.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.048836913
+      },
+      {
+        "feature": "views",
+        "threshold": 4600.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0984608084
+      },
+      {
+        "leaf": true,
+        "value": 0.0308552422
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 42.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 3.00999999,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.115037315
+      },
+      {
+        "leaf": true,
+        "value": -0.0328875855
+      },
+      {
+        "feature": "image_count",
+        "threshold": 7.0,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0332835317
+      },
+      {
+        "leaf": true,
+        "value": -0.0508825779
+      },
+      {
+        "leaf": true,
+        "value": 0.0878039896
+      },
+      {
+        "leaf": true,
+        "value": -0.117414355
+      },
+      {
+        "leaf": true,
+        "value": -0.0266552269
+      },
+      {
+        "leaf": true,
+        "value": 0.138503939
+      },
+      {
+        "leaf": true,
+        "value": 0.0469445437
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 2953829.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 131.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 7.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.857142866,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 78.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 1.19000006,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 1221.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "is_dealer",
+        "threshold": 1.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 4.0869565,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 130.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 161.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0105123539
+      },
+      {
+        "leaf": true,
+        "value": 0.128653094
+      },
+      {
+        "leaf": true,
+        "value": -0.0515987538
+      },
+      {
+        "leaf": true,
+        "value": 0.0275923666
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 37.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0500142239
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 61.0,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 27,
+        "right": 28,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.107371978
+      },
+      {
+        "feature": "price",
+        "threshold": 296279.0,
+        "left": 29,
+        "right": 30,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0177187361
+      },
+      {
+        "leaf": true,
+        "value": -0.0721925423
+      },
+      {
+        "leaf": true,
+        "value": 0.0923101977
+      },
+      {
+        "leaf": true,
+        "value": -0.0217824839
+      },
+      {
+        "leaf": true,
+        "value": -0.103736892
+      },
+      {
+        "leaf": true,
+        "value": -0.0332625173
+      },
+      {
+        "leaf": true,
+        "value": 0.045471672
+      },
+      {
+        "leaf": true,
+        "value": -0.0505463444
+      },
+      {
+        "leaf": true,
+        "value": -0.0741885379
+      },
+      {
+        "leaf": true,
+        "value": 0.0422111452
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 316875.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 33.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2953829.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0187629201
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 0.689999998,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 2.25,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 7.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.000432699744
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 1.0625,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 74.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 158.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4232.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 78.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 101.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0966255888
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 120.0,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 153.0,
+        "left": 27,
+        "right": 28,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 1317207.0,
+        "left": 29,
+        "right": 30,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0428893268
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.928571403,
+        "left": 31,
+        "right": 32,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0168941375
+      },
+      {
+        "leaf": true,
+        "value": -0.0779135376
+      },
+      {
+        "leaf": true,
+        "value": 0.0277993176
+      },
+      {
+        "leaf": true,
+        "value": 0.0251968242
+      },
+      {
+        "leaf": true,
+        "value": -0.0791455284
+      },
+      {
+        "leaf": true,
+        "value": 0.021732593
+      },
+      {
+        "leaf": true,
+        "value": 0.110429958
+      },
+      {
+        "leaf": true,
+        "value": 0.0334598683
+      },
+      {
+        "leaf": true,
+        "value": -0.0482554995
+      },
+      {
+        "leaf": true,
+        "value": -0.00246813265
+      },
+      {
+        "leaf": true,
+        "value": -0.090226315
+      },
+      {
+        "leaf": true,
+        "value": 0.0391703397
+      },
+      {
+        "leaf": true,
+        "value": 0.1238034
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 2953829.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 23.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 8.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 88.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 48.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0468973927
+      },
+      {
+        "feature": "price",
+        "threshold": 853241.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0355450958
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 182.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 140.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 6.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 81.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 23.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 1792356.0,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 8.0,
+        "left": 27,
+        "right": 28,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0495641343
+      },
+      {
+        "feature": "price",
+        "threshold": 458278.0,
+        "left": 29,
+        "right": 30,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0497223251
+      },
+      {
+        "leaf": true,
+        "value": -0.014842229
+      },
+      {
+        "leaf": true,
+        "value": 0.0428999402
+      },
+      {
+        "leaf": true,
+        "value": 0.123673141
+      },
+      {
+        "leaf": true,
+        "value": 0.0296102408
+      },
+      {
+        "leaf": true,
+        "value": -0.0227835905
+      },
+      {
+        "leaf": true,
+        "value": -0.103291191
+      },
+      {
+        "leaf": true,
+        "value": 0.0586355142
+      },
+      {
+        "leaf": true,
+        "value": -0.0778229609
+      },
+      {
+        "leaf": true,
+        "value": 0.0787724853
+      },
+      {
+        "leaf": true,
+        "value": -0.0282429066
+      },
+      {
+        "leaf": true,
+        "value": -0.0209512711
+      },
+      {
+        "leaf": true,
+        "value": -0.102319956
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 316875.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 64.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4463.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "is_dealer",
+        "threshold": 1.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 6.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2707270.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 6.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 3.63000011,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0691559315
+      },
+      {
+        "leaf": true,
+        "value": -0.0895245671
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 61.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 4.44000006,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 8.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0107111027
+      },
+      {
+        "leaf": true,
+        "value": -0.0922455788
+      },
+      {
+        "leaf": true,
+        "value": 0.0774107128
+      },
+      {
+        "leaf": true,
+        "value": -0.0165880602
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 7.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0144056482
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.43000007,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0799577087
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 4.0,
+        "left": 27,
+        "right": 28,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0355390087
+      },
+      {
+        "leaf": true,
+        "value": 0.00171310047
+      },
+      {
+        "leaf": true,
+        "value": -0.0750874802
+      },
+      {
+        "leaf": true,
+        "value": -0.0141714513
+      },
+      {
+        "leaf": true,
+        "value": 0.108635619
+      },
+      {
+        "leaf": true,
+        "value": 0.0094955042
+      },
+      {
+        "leaf": true,
+        "value": 0.118565969
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 2953829.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.447761208,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4018.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 18.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 65570.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 179.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 6.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00102263677
+      },
+      {
+        "leaf": true,
+        "value": 0.087062113
+      },
+      {
+        "leaf": true,
+        "value": -0.0978149995
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 36.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 4.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0125488294
+      },
+      {
+        "leaf": true,
+        "value": 0.0483936928
+      },
+      {
+        "leaf": true,
+        "value": -0.080430232
+      },
+      {
+        "feature": "views",
+        "threshold": 3135.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 93.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.030806629
+      },
+      {
+        "leaf": true,
+        "value": 0.114338987
+      },
+      {
+        "leaf": true,
+        "value": -0.0654676184
+      },
+      {
+        "leaf": true,
+        "value": 0.00322594494
+      },
+      {
+        "leaf": true,
+        "value": -0.0606145151
+      },
+      {
+        "leaf": true,
+        "value": 0.0822521374
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 2953829.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.447761208,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4232.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0715674534
+      },
+      {
+        "feature": "image_count",
+        "threshold": 2.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 666.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 6.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 4.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 418153.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00436425628
+      },
+      {
+        "leaf": true,
+        "value": 0.114252411
+      },
+      {
+        "leaf": true,
+        "value": 0.0425269008
+      },
+      {
+        "leaf": true,
+        "value": -0.0770266205
+      },
+      {
+        "leaf": true,
+        "value": -0.0333339274
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 126.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4543.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 123.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0580611303
+      },
+      {
+        "leaf": true,
+        "value": 0.00893045962
+      },
+      {
+        "leaf": true,
+        "value": -0.0789019167
+      },
+      {
+        "leaf": true,
+        "value": 0.0322028697
+      },
+      {
+        "leaf": true,
+        "value": -0.0431759916
+      },
+      {
+        "leaf": true,
+        "value": 0.0410246588
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 316875.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 3.01999998,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 2.20000005,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 221456.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0847789496
+      },
+      {
+        "feature": "verified_badge",
+        "threshold": 1.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2953829.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 92627.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 100.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 4.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 38.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 38.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 142.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.02999997,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0965262279
+      },
+      {
+        "leaf": true,
+        "value": -0.00489841402
+      },
+      {
+        "leaf": true,
+        "value": -0.076407969
+      },
+      {
+        "leaf": true,
+        "value": 0.010934351
+      },
+      {
+        "leaf": true,
+        "value": 0.105562627
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 78.0,
+        "left": 27,
+        "right": 28,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0510501266
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 94.0,
+        "left": 29,
+        "right": 30,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0467976965
+      },
+      {
+        "leaf": true,
+        "value": 0.0972383618
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 3.5,
+        "left": 31,
+        "right": 32,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0534919016
+      },
+      {
+        "leaf": true,
+        "value": 0.0113896765
+      },
+      {
+        "leaf": true,
+        "value": -0.0541261695
+      },
+      {
+        "leaf": true,
+        "value": 0.0144741014
+      },
+      {
+        "leaf": true,
+        "value": -0.0164357387
+      },
+      {
+        "leaf": true,
+        "value": -0.0833973587
+      },
+      {
+        "leaf": true,
+        "value": -0.0569706522
+      },
+      {
+        "leaf": true,
+        "value": 0.0357986018
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 2953829.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 90.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 8.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 88.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 38.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4232.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0417752825
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0197657403
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 57.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 382802.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.928571403,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0117869014
+      },
+      {
+        "feature": "views",
+        "threshold": 3582.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 142095.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.954545438,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 3135.0,
+        "left": 27,
+        "right": 28,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 42.0,
+        "left": 29,
+        "right": 30,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.103414617
+      },
+      {
+        "leaf": true,
+        "value": 0.0206696764
+      },
+      {
+        "leaf": true,
+        "value": 0.104258969
+      },
+      {
+        "leaf": true,
+        "value": -0.0489420854
+      },
+      {
+        "leaf": true,
+        "value": 0.0113552809
+      },
+      {
+        "leaf": true,
+        "value": -0.0183943864
+      },
+      {
+        "leaf": true,
+        "value": -0.111723557
+      },
+      {
+        "leaf": true,
+        "value": 0.058018554
+      },
+      {
+        "leaf": true,
+        "value": -0.0181210078
+      },
+      {
+        "leaf": true,
+        "value": -0.0853967518
+      },
+      {
+        "leaf": true,
+        "value": -0.00572557142
+      },
+      {
+        "leaf": true,
+        "value": -0.056001354
+      },
+      {
+        "leaf": true,
+        "value": 0.0580924563
+      }
+    ],
+    [
+      {
+        "feature": "seller_rating",
+        "threshold": 3.98000002,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.48000002,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 33.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 54.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 176.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0761671141
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 96.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "is_dealer",
+        "threshold": 1.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0680054203
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 42.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0180429947
+      },
+      {
+        "leaf": true,
+        "value": 0.0468573943
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 73.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 1.48192775,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 29.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00968356244
+      },
+      {
+        "leaf": true,
+        "value": 0.115761057
+      },
+      {
+        "leaf": true,
+        "value": 0.00487851026
+      },
+      {
+        "leaf": true,
+        "value": -0.0832171887
+      },
+      {
+        "leaf": true,
+        "value": 0.0504819639
+      },
+      {
+        "leaf": true,
+        "value": -0.0329617672
+      },
+      {
+        "leaf": true,
+        "value": 0.0144883497
+      },
+      {
+        "leaf": true,
+        "value": -0.078927651
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 2953829.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 57.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 3.75862074,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.753424644,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.072284922
+      },
+      {
+        "feature": "price",
+        "threshold": 12513440.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0958767757
+      },
+      {
+        "feature": "is_dealer",
+        "threshold": 1.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 186.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 41.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 25013828.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.075632602
+      },
+      {
+        "leaf": true,
+        "value": -0.0397745334
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 2.05084753,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0233314615
+      },
+      {
+        "leaf": true,
+        "value": 0.0793219134
+      },
+      {
+        "leaf": true,
+        "value": -0.00188025774
+      },
+      {
+        "leaf": true,
+        "value": -0.109474562
+      },
+      {
+        "leaf": true,
+        "value": 0.0439948924
+      },
+      {
+        "leaf": true,
+        "value": -0.0209314823
+      },
+      {
+        "leaf": true,
+        "value": -0.0565233417
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 25235068.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 90.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0910771713
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 2.34567904,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 25.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 79.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 311813.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 70.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 2.04597712,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 1182.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.094107084
+      },
+      {
+        "leaf": true,
+        "value": 0.00464894949
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 160.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 16.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0985752568
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 155.0,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0830100775
+      },
+      {
+        "leaf": true,
+        "value": 0.0251230355
+      },
+      {
+        "leaf": true,
+        "value": -0.0345355831
+      },
+      {
+        "leaf": true,
+        "value": 0.0906082019
+      },
+      {
+        "leaf": true,
+        "value": 0.0285632201
+      },
+      {
+        "leaf": true,
+        "value": -0.0445167273
+      },
+      {
+        "leaf": true,
+        "value": -0.00788754877
+      },
+      {
+        "leaf": true,
+        "value": 0.11320249
+      },
+      {
+        "leaf": true,
+        "value": 0.0665108263
+      },
+      {
+        "leaf": true,
+        "value": -0.0425241105
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 2953829.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.447761208,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 8.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.056026537
+      },
+      {
+        "feature": "price",
+        "threshold": 65570.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 17939132.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.031352099
+      },
+      {
+        "leaf": true,
+        "value": -0.0908013433
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 38.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.101862408
+      },
+      {
+        "feature": "price",
+        "threshold": 25013828.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 3.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 2533.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0532157794
+      },
+      {
+        "leaf": true,
+        "value": 0.0794164613
+      },
+      {
+        "leaf": true,
+        "value": 0.00308082253
+      },
+      {
+        "leaf": true,
+        "value": -0.0589300878
+      },
+      {
+        "leaf": true,
+        "value": 0.0849104822
+      },
+      {
+        "leaf": true,
+        "value": -0.02398411
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 2668535.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 141.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 49.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 0.49000001,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 763451.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 1.19000006,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 666.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0422897898
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 9.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 3152.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0879102051
+      },
+      {
+        "leaf": true,
+        "value": -0.0609363317
+      },
+      {
+        "leaf": true,
+        "value": 0.0357926413
+      },
+      {
+        "leaf": true,
+        "value": -0.0292819235
+      },
+      {
+        "leaf": true,
+        "value": 0.0976368338
+      },
+      {
+        "leaf": true,
+        "value": 0.0185337868
+      },
+      {
+        "feature": "views",
+        "threshold": 2381.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 36.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0487987138
+      },
+      {
+        "leaf": true,
+        "value": -0.022481747
+      },
+      {
+        "leaf": true,
+        "value": -0.0613165088
+      },
+      {
+        "leaf": true,
+        "value": -0.0770823732
+      },
+      {
+        "leaf": true,
+        "value": 0.00379664567
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 3519941.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.513888896,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 8.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0640104488
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 57.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 7.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.055246871
+      },
+      {
+        "feature": "image_count",
+        "threshold": 3.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0428805128
+      },
+      {
+        "leaf": true,
+        "value": 0.0977732241
+      },
+      {
+        "leaf": true,
+        "value": 0.0228226334
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 8.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 2.05084753,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0283485949
+      },
+      {
+        "leaf": true,
+        "value": -0.0388997905
+      },
+      {
+        "leaf": true,
+        "value": -0.0206754189
+      },
+      {
+        "leaf": true,
+        "value": -0.0665971786
+      }
+    ],
+    [
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.753424644,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "is_dealer",
+        "threshold": 1.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 50.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0785408318
+      },
+      {
+        "leaf": true,
+        "value": -0.0136377439
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 179.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 65.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0101943379
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 4.0869565,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 1634.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00642828736
+      },
+      {
+        "leaf": true,
+        "value": -0.110377602
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.48000002,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 163.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.077001743
+      },
+      {
+        "feature": "views",
+        "threshold": 3033.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0473578349
+      },
+      {
+        "leaf": true,
+        "value": 0.0227387454
+      },
+      {
+        "leaf": true,
+        "value": 0.0900919288
+      },
+      {
+        "leaf": true,
+        "value": -0.00168434402
+      },
+      {
+        "leaf": true,
+        "value": 0.0354620926
+      },
+      {
+        "leaf": true,
+        "value": -0.0537669435
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 29800672.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 21.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.079102166
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 11.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 136.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 402477.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.3900001,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 49.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 48.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "is_dealer",
+        "threshold": 1.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0538834594
+      },
+      {
+        "leaf": true,
+        "value": -0.100960724
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 4.15999985,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 19.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2567692.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0339182317
+      },
+      {
+        "feature": "verified_badge",
+        "threshold": 1.0,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.00527094211
+      },
+      {
+        "leaf": true,
+        "value": -0.0776335895
+      },
+      {
+        "leaf": true,
+        "value": 0.0194866769
+      },
+      {
+        "leaf": true,
+        "value": -0.0484425016
+      },
+      {
+        "leaf": true,
+        "value": -0.0408730581
+      },
+      {
+        "leaf": true,
+        "value": 0.0732162818
+      },
+      {
+        "leaf": true,
+        "value": -0.050074555
+      },
+      {
+        "leaf": true,
+        "value": 0.0242726188
+      },
+      {
+        "leaf": true,
+        "value": 0.088149786
+      },
+      {
+        "leaf": true,
+        "value": 0.00569337327
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 65570.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0865330547
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 10.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0661971197
+      },
+      {
+        "feature": "views",
+        "threshold": 4232.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.857142866,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 13.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.084809877
+      },
+      {
+        "feature": "price",
+        "threshold": 2868802.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0312144198
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 19.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00018406687
+      },
+      {
+        "leaf": true,
+        "value": 0.0578976385
+      },
+      {
+        "leaf": true,
+        "value": 0.0144009441
+      },
+      {
+        "leaf": true,
+        "value": -0.0696217343
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 29800672.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 12513440.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0714942738
+      },
+      {
+        "feature": "price",
+        "threshold": 2707270.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 78.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 0.49000001,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 6.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.110045254
+      },
+      {
+        "leaf": true,
+        "value": -0.0130284345
+      },
+      {
+        "leaf": true,
+        "value": 0.0578249954
+      },
+      {
+        "feature": "is_dealer",
+        "threshold": 1.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0858955607
+      },
+      {
+        "leaf": true,
+        "value": -0.0116675673
+      },
+      {
+        "leaf": true,
+        "value": -0.0077033164
+      },
+      {
+        "leaf": true,
+        "value": -0.0515980199
+      }
+    ],
+    [
+      {
+        "feature": "fav_count",
+        "threshold": 145.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 0.529999971,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0454446189
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 1.97000003,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 23.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0821744204
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 2.69354844,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 3.98000002,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 5.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 72.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 51.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0141635509
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 155.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 45.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.082350038
+      },
+      {
+        "leaf": true,
+        "value": 0.00785705633
+      },
+      {
+        "leaf": true,
+        "value": 0.0707768276
+      },
+      {
+        "leaf": true,
+        "value": -0.0262812432
+      },
+      {
+        "leaf": true,
+        "value": -0.0164101664
+      },
+      {
+        "leaf": true,
+        "value": -0.071963273
+      },
+      {
+        "leaf": true,
+        "value": 0.0542058311
+      },
+      {
+        "leaf": true,
+        "value": -0.0297367163
+      },
+      {
+        "leaf": true,
+        "value": -0.0788504705
+      },
+      {
+        "leaf": true,
+        "value": 0.00301595055
+      }
+    ],
+    [
+      {
+        "feature": "views",
+        "threshold": 3135.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 41.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 59.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "is_dealer",
+        "threshold": 1.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 2490.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 174.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 86.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0732328966
+      },
+      {
+        "leaf": true,
+        "value": -0.00336622191
+      },
+      {
+        "feature": "views",
+        "threshold": 1769.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 129.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 111.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0580303632
+      },
+      {
+        "leaf": true,
+        "value": 0.113319039
+      },
+      {
+        "leaf": true,
+        "value": 0.0165436696
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 41.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 136.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0785311237
+      },
+      {
+        "leaf": true,
+        "value": -0.0132870348
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 71.0,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4232.0,
+        "left": 27,
+        "right": 28,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0490663461
+      },
+      {
+        "leaf": true,
+        "value": 0.019219391
+      },
+      {
+        "leaf": true,
+        "value": 0.0826039389
+      },
+      {
+        "leaf": true,
+        "value": -0.0143585131
+      },
+      {
+        "leaf": true,
+        "value": 0.0315639935
+      },
+      {
+        "leaf": true,
+        "value": -0.0640927181
+      },
+      {
+        "leaf": true,
+        "value": 0.0829653591
+      },
+      {
+        "leaf": true,
+        "value": 0.00290752784
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 2707270.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 178.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 37.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 8.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 402477.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0301595163
+      },
+      {
+        "feature": "views",
+        "threshold": 4160.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 86321.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 38.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0772493035
+      },
+      {
+        "leaf": true,
+        "value": -0.022689892
+      },
+      {
+        "leaf": true,
+        "value": 0.0972953066
+      },
+      {
+        "leaf": true,
+        "value": -0.000411393412
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.4000001,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 784.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0760839954
+      },
+      {
+        "leaf": true,
+        "value": -0.000132955727
+      },
+      {
+        "leaf": true,
+        "value": -0.0683161914
+      },
+      {
+        "leaf": true,
+        "value": -0.00776675344
+      },
+      {
+        "leaf": true,
+        "value": -0.0323783904
+      },
+      {
+        "leaf": true,
+        "value": 0.0372210145
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 29800672.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.753424644,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0714970231
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 13.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 50.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0415225439
+      },
+      {
+        "leaf": true,
+        "value": 0.0733805522
+      },
+      {
+        "feature": "price",
+        "threshold": 5008429.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2707270.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 1.97000003,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.106174663
+      },
+      {
+        "feature": "image_count",
+        "threshold": 7.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 6.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00182470575
+      },
+      {
+        "leaf": true,
+        "value": -0.0442471616
+      },
+      {
+        "leaf": true,
+        "value": -0.0320488885
+      },
+      {
+        "leaf": true,
+        "value": 0.0148013635
+      },
+      {
+        "leaf": true,
+        "value": 0.0758814737
+      },
+      {
+        "leaf": true,
+        "value": -0.0361851789
+      }
+    ],
+    [
+      {
+        "feature": "is_dealer",
+        "threshold": 1.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.857142866,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 17.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 18.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 3.3900001,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.928571403,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 35.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0253879856
+      },
+      {
+        "leaf": true,
+        "value": 0.0916299075
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 1.28999996,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 3392.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0957545415
+      },
+      {
+        "leaf": true,
+        "value": -0.016269993
+      },
+      {
+        "leaf": true,
+        "value": 0.0523187928
+      },
+      {
+        "feature": "image_count",
+        "threshold": 3.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 90.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 67.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 8.0,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0664684251
+      },
+      {
+        "leaf": true,
+        "value": -0.0553720705
+      },
+      {
+        "leaf": true,
+        "value": 0.00808905996
+      },
+      {
+        "leaf": true,
+        "value": -0.0610491745
+      },
+      {
+        "leaf": true,
+        "value": 0.00781409349
+      },
+      {
+        "leaf": true,
+        "value": -0.00638371287
+      },
+      {
+        "leaf": true,
+        "value": 0.0771279037
+      },
+      {
+        "leaf": true,
+        "value": 0.0298467632
+      },
+      {
+        "leaf": true,
+        "value": -0.0608852208
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 65570.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.065858528
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.753424644,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 27.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 25013828.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00117145234
+      },
+      {
+        "leaf": true,
+        "value": 0.0810142085
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 5.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0618269816
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 1.84000003,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 14597584.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0157148726
+      },
+      {
+        "leaf": true,
+        "value": -0.055779811
+      },
+      {
+        "leaf": true,
+        "value": 0.00612336537
+      },
+      {
+        "leaf": true,
+        "value": -0.0614538975
+      }
+    ],
+    [
+      {
+        "feature": "capture_count",
+        "threshold": 5.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.857142866,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 898906.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0296059307
+      },
+      {
+        "feature": "views",
+        "threshold": 4267.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 3152.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4463.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 3519941.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -7.87756289e-05
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 120.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 111.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 34.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.027341336
+      },
+      {
+        "feature": "views",
+        "threshold": 960.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0054463842
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 78.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.961538434,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 3929.0,
+        "left": 27,
+        "right": 28,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0624624752
+      },
+      {
+        "leaf": true,
+        "value": -0.0164913889
+      },
+      {
+        "feature": "views",
+        "threshold": 949.0,
+        "left": 29,
+        "right": 30,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00487395283
+      },
+      {
+        "leaf": true,
+        "value": -0.0815268531
+      },
+      {
+        "leaf": true,
+        "value": -0.0256250035
+      },
+      {
+        "leaf": true,
+        "value": 0.0433057472
+      },
+      {
+        "leaf": true,
+        "value": -0.0181965288
+      },
+      {
+        "leaf": true,
+        "value": -0.0825644359
+      },
+      {
+        "leaf": true,
+        "value": 0.0226824787
+      },
+      {
+        "leaf": true,
+        "value": -0.049928721
+      },
+      {
+        "leaf": true,
+        "value": 0.0102392714
+      },
+      {
+        "leaf": true,
+        "value": 0.0813934803
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 25235068.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 12513440.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0646878704
+      },
+      {
+        "feature": "price",
+        "threshold": 3519941.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0609441176
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.48000002,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0618527904
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 26.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.97000003,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0306654815
+      },
+      {
+        "leaf": true,
+        "value": -0.0381592102
+      },
+      {
+        "leaf": true,
+        "value": 0.092626445
+      },
+      {
+        "leaf": true,
+        "value": -0.00945838448
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 296279.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 64.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 91.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "is_dealer",
+        "threshold": 1.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 6.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 14.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 19.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0462806486
+      },
+      {
+        "leaf": true,
+        "value": -0.0367202461
+      },
+      {
+        "leaf": true,
+        "value": -0.0727668107
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0543672629
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 43.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2707270.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 6.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 23.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0178328343
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.779999971,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0141521012
+      },
+      {
+        "leaf": true,
+        "value": -0.0452271923
+      },
+      {
+        "leaf": true,
+        "value": 0.0266008675
+      },
+      {
+        "leaf": true,
+        "value": 0.0886116251
+      },
+      {
+        "feature": "price",
+        "threshold": 4247208.0,
+        "left": 27,
+        "right": 28,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0671693608
+      },
+      {
+        "leaf": true,
+        "value": -0.00285095512
+      },
+      {
+        "leaf": true,
+        "value": -0.00119326648
+      },
+      {
+        "leaf": true,
+        "value": -0.065870069
+      },
+      {
+        "leaf": true,
+        "value": 0.0430918746
+      },
+      {
+        "leaf": true,
+        "value": -0.035303425
+      }
+    ],
+    [
+      {
+        "feature": "fav_count",
+        "threshold": 10.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0721561611
+      },
+      {
+        "feature": "price",
+        "threshold": 3519941.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 2490.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 51.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 38.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 64.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.00137083896
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 1.05999994,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 120.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 47.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "is_dealer",
+        "threshold": 1.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 28.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -7.33898414e-05
+      },
+      {
+        "leaf": true,
+        "value": 0.0851100311
+      },
+      {
+        "leaf": true,
+        "value": 0.0308042374
+      },
+      {
+        "leaf": true,
+        "value": -0.0499225669
+      },
+      {
+        "leaf": true,
+        "value": 0.0256380383
+      },
+      {
+        "leaf": true,
+        "value": 0.0864810124
+      },
+      {
+        "leaf": true,
+        "value": 0.048523128
+      },
+      {
+        "leaf": true,
+        "value": -0.0384035818
+      },
+      {
+        "leaf": true,
+        "value": -0.00871566217
+      },
+      {
+        "leaf": true,
+        "value": -0.0673276782
+      }
+    ],
+    [
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 90.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 10.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0494430177
+      },
+      {
+        "leaf": true,
+        "value": -0.0711581632
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 168.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 29.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 5.10714293,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.044077877
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 7.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0757537037
+      },
+      {
+        "leaf": true,
+        "value": -0.0324359648
+      },
+      {
+        "leaf": true,
+        "value": -0.00154676009
+      },
+      {
+        "leaf": true,
+        "value": -0.0349531844
+      }
+    ],
+    [
+      {
+        "feature": "views",
+        "threshold": 3152.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 10.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4232.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0747818574
+      },
+      {
+        "feature": "views",
+        "threshold": 2265.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 5.10714293,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 4.0869565,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 5.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 4.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 49.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0302891787
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 66.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0185560882
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 98.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 784.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0702849701
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 7.0,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0260335784
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 3.76999998,
+        "left": 27,
+        "right": 28,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0157856364
+      },
+      {
+        "leaf": true,
+        "value": -0.0663271174
+      },
+      {
+        "leaf": true,
+        "value": 0.00770555204
+      },
+      {
+        "leaf": true,
+        "value": -0.0370777696
+      },
+      {
+        "leaf": true,
+        "value": -0.0011322404
+      },
+      {
+        "leaf": true,
+        "value": 0.0395866148
+      },
+      {
+        "leaf": true,
+        "value": 0.0418076031
+      },
+      {
+        "leaf": true,
+        "value": -0.0434387773
+      },
+      {
+        "leaf": true,
+        "value": 0.118082084
+      },
+      {
+        "leaf": true,
+        "value": 0.0317822285
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 3.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0732824877
+      },
+      {
+        "feature": "views",
+        "threshold": 3756.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 3152.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4756.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 2381.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0929057449
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 1.57471263,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0167650655
+      },
+      {
+        "feature": "views",
+        "threshold": 784.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 7.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 1216725.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 6.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0216576327
+      },
+      {
+        "leaf": true,
+        "value": 0.039157182
+      },
+      {
+        "leaf": true,
+        "value": -0.0640080124
+      },
+      {
+        "leaf": true,
+        "value": 0.0113732945
+      },
+      {
+        "leaf": true,
+        "value": -0.0319821648
+      },
+      {
+        "leaf": true,
+        "value": 0.0470905229
+      },
+      {
+        "leaf": true,
+        "value": -0.0181157421
+      },
+      {
+        "leaf": true,
+        "value": -0.0744943172
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 441698.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 2.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 949.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0280578341
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.961538434,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 7.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4463.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 83.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 7.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0381926969
+      },
+      {
+        "leaf": true,
+        "value": -0.0942197219
+      },
+      {
+        "feature": "image_count",
+        "threshold": 2.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0304150265
+      },
+      {
+        "leaf": true,
+        "value": 0.0404739343
+      },
+      {
+        "leaf": true,
+        "value": -0.0301508047
+      },
+      {
+        "feature": "views",
+        "threshold": 3544.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 128.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.00777231669
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 9.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0931424126
+      },
+      {
+        "leaf": true,
+        "value": -0.00576602574
+      },
+      {
+        "leaf": true,
+        "value": 0.0277829058
+      },
+      {
+        "leaf": true,
+        "value": -0.0510409847
+      },
+      {
+        "leaf": true,
+        "value": -0.00523307035
+      },
+      {
+        "leaf": true,
+        "value": 0.0846464857
+      }
+    ],
+    [
+      {
+        "feature": "views",
+        "threshold": 3152.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 2490.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 3756.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 8.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 7.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 29.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 155.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 38.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 999.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0726796165
+      },
+      {
+        "leaf": true,
+        "value": 0.00627080817
+      },
+      {
+        "leaf": true,
+        "value": 0.0105693713
+      },
+      {
+        "leaf": true,
+        "value": 0.0856161565
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 77.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0541467071
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 51.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 296279.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0779748186
+      },
+      {
+        "leaf": true,
+        "value": -0.0131913126
+      },
+      {
+        "feature": "views",
+        "threshold": 4463.0,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2567692.0,
+        "left": 27,
+        "right": 28,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0498976707
+      },
+      {
+        "leaf": true,
+        "value": -0.0368142053
+      },
+      {
+        "leaf": true,
+        "value": -0.00268620788
+      },
+      {
+        "leaf": true,
+        "value": 0.0848670825
+      },
+      {
+        "leaf": true,
+        "value": 0.0477250256
+      },
+      {
+        "leaf": true,
+        "value": -0.0273319334
+      },
+      {
+        "leaf": true,
+        "value": -0.0140933162
+      },
+      {
+        "leaf": true,
+        "value": -0.0716871396
+      }
+    ],
+    [
+      {
+        "feature": "fav_count",
+        "threshold": 10.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0620452762
+      },
+      {
+        "feature": "price",
+        "threshold": 65570.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0594078787
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 179.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.48000002,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 402477.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 441698.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 5.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0680230409
+      },
+      {
+        "feature": "price",
+        "threshold": 2820099.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.039872244
+      },
+      {
+        "leaf": true,
+        "value": -0.0207484048
+      },
+      {
+        "leaf": true,
+        "value": -0.000187558544
+      },
+      {
+        "leaf": true,
+        "value": 0.0776156038
+      },
+      {
+        "leaf": true,
+        "value": 0.019304743
+      },
+      {
+        "leaf": true,
+        "value": -0.00587024167
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 29800672.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 5.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0606343262
+      },
+      {
+        "leaf": true,
+        "value": 0.0518747382
+      },
+      {
+        "feature": "price",
+        "threshold": 12513440.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 3519941.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0679067001
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 72.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0314149372
+      },
+      {
+        "leaf": true,
+        "value": -0.00422031572
+      },
+      {
+        "leaf": true,
+        "value": -0.036014799
+      }
+    ],
+    [
+      {
+        "feature": "capture_count",
+        "threshold": 7.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 72.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 25.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4441.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 29.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 156.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 12.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.016868066
+      },
+      {
+        "feature": "views",
+        "threshold": 1221.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.78999996,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0685883611
+      },
+      {
+        "leaf": true,
+        "value": 0.0018608222
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 83.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0289462954
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 1.28999996,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 185.0,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.00612867577
+      },
+      {
+        "leaf": true,
+        "value": 0.0449355319
+      },
+      {
+        "leaf": true,
+        "value": -0.00696663279
+      },
+      {
+        "leaf": true,
+        "value": -0.0571142323
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 33.0,
+        "left": 27,
+        "right": 28,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0845557675
+      },
+      {
+        "leaf": true,
+        "value": -0.0482372344
+      },
+      {
+        "leaf": true,
+        "value": 0.0240676645
+      },
+      {
+        "leaf": true,
+        "value": 0.0749649405
+      },
+      {
+        "leaf": true,
+        "value": -0.0240739081
+      },
+      {
+        "leaf": true,
+        "value": -0.0466132686
+      },
+      {
+        "leaf": true,
+        "value": 0.013092041
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 65570.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0572663955
+      },
+      {
+        "feature": "price",
+        "threshold": 156051.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 23.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 311813.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.00257704174
+      },
+      {
+        "leaf": true,
+        "value": 0.080175668
+      },
+      {
+        "feature": "verified_badge",
+        "threshold": 1.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 146.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0697774217
+      },
+      {
+        "feature": "image_count",
+        "threshold": 4.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 16.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0260032061
+      },
+      {
+        "leaf": true,
+        "value": -0.0423303433
+      },
+      {
+        "leaf": true,
+        "value": -0.00660631573
+      },
+      {
+        "leaf": true,
+        "value": 0.0546370335
+      },
+      {
+        "leaf": true,
+        "value": 0.0375689268
+      },
+      {
+        "leaf": true,
+        "value": -0.0388976112
+      }
+    ],
+    [
+      {
+        "feature": "seller_rating",
+        "threshold": 3.98000002,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 73.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 1221.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 877.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 1942.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0674067438
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 5.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.023359267
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 7.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 18.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 1.50999999,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0458946675
+      },
+      {
+        "leaf": true,
+        "value": 0.0364854038
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 52.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.00579460431
+      },
+      {
+        "leaf": true,
+        "value": -0.0256411172
+      },
+      {
+        "leaf": true,
+        "value": 0.0699876174
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 29.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 33.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0211901609
+      },
+      {
+        "leaf": true,
+        "value": 0.0833752677
+      },
+      {
+        "leaf": true,
+        "value": -0.0698257685
+      },
+      {
+        "leaf": true,
+        "value": 0.00750777079
+      },
+      {
+        "leaf": true,
+        "value": 0.0277410485
+      },
+      {
+        "leaf": true,
+        "value": -0.0257054809
+      }
+    ],
+    [
+      {
+        "feature": "views",
+        "threshold": 4441.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 898906.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 1216725.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 50.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 49.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00878347363
+      },
+      {
+        "leaf": true,
+        "value": -0.0640575215
+      },
+      {
+        "feature": "views",
+        "threshold": 1879.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 2947.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 1022.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 5.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.83999991,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 106.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 49.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0839161649
+      },
+      {
+        "leaf": true,
+        "value": -0.0493992046
+      },
+      {
+        "leaf": true,
+        "value": 0.0140008656
+      },
+      {
+        "feature": "image_count",
+        "threshold": 2.0,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 39.0,
+        "left": 27,
+        "right": 28,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0159867909
+      },
+      {
+        "leaf": true,
+        "value": -0.0279587694
+      },
+      {
+        "leaf": true,
+        "value": -0.0687510371
+      },
+      {
+        "leaf": true,
+        "value": -0.0197951496
+      },
+      {
+        "leaf": true,
+        "value": 0.0457163751
+      },
+      {
+        "leaf": true,
+        "value": -0.0432558097
+      },
+      {
+        "leaf": true,
+        "value": -0.0393688567
+      },
+      {
+        "leaf": true,
+        "value": 0.0249947663
+      },
+      {
+        "leaf": true,
+        "value": 0.0841781348
+      },
+      {
+        "leaf": true,
+        "value": 0.0241328198
+      }
+    ],
+    [
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.447761208,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0505679362
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 50.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 5.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 4.32999992,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0786933303
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 35.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 4.0869565,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 120.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0502695851
+      },
+      {
+        "leaf": true,
+        "value": 0.0100442907
+      },
+      {
+        "feature": "views",
+        "threshold": 4463.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 4.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0101817595
+      },
+      {
+        "leaf": true,
+        "value": -0.0794991553
+      },
+      {
+        "leaf": true,
+        "value": 0.00907903817
+      },
+      {
+        "leaf": true,
+        "value": -0.056706816
+      },
+      {
+        "leaf": true,
+        "value": 0.0102192285
+      },
+      {
+        "leaf": true,
+        "value": 0.0771024451
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 25235068.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 12513440.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0370036215
+      },
+      {
+        "feature": "price",
+        "threshold": 3519941.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0535202622
+      },
+      {
+        "feature": "image_count",
+        "threshold": 4.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0375212543
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 42.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 37.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.060998328
+      },
+      {
+        "leaf": true,
+        "value": 0.00598190445
+      },
+      {
+        "leaf": true,
+        "value": 0.040712323
+      },
+      {
+        "leaf": true,
+        "value": -0.0118300989
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 109521.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 784.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0690375641
+      },
+      {
+        "leaf": true,
+        "value": -0.0112529518
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.94000006,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 4.32999992,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00898525026
+      },
+      {
+        "leaf": true,
+        "value": -0.0686783791
+      },
+      {
+        "feature": "price",
+        "threshold": 1317207.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 70.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 178.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4463.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0291516669
+      },
+      {
+        "leaf": true,
+        "value": -0.0658643618
+      },
+      {
+        "leaf": true,
+        "value": 0.0691474527
+      },
+      {
+        "leaf": true,
+        "value": -0.0283460021
+      },
+      {
+        "leaf": true,
+        "value": 0.0313496888
+      },
+      {
+        "leaf": true,
+        "value": -0.0431007929
+      }
+    ],
+    [
+      {
+        "feature": "fav_count",
+        "threshold": 131.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 200235.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 311813.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 15.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 14.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 22.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4232.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0208924096
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 94.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 2.10227275,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 21.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0616632998
+      },
+      {
+        "leaf": true,
+        "value": 0.0193429515
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 19.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.00846710242
+      },
+      {
+        "leaf": true,
+        "value": 0.0683277771
+      },
+      {
+        "leaf": true,
+        "value": -0.0102002518
+      },
+      {
+        "leaf": true,
+        "value": 0.0578251965
+      },
+      {
+        "leaf": true,
+        "value": -0.0305960234
+      },
+      {
+        "leaf": true,
+        "value": -0.07840617
+      },
+      {
+        "feature": "views",
+        "threshold": 949.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0123626636
+      },
+      {
+        "leaf": true,
+        "value": 0.0906924754
+      },
+      {
+        "leaf": true,
+        "value": -0.0608485602
+      },
+      {
+        "leaf": true,
+        "value": 0.00675643608
+      }
+    ],
+    [
+      {
+        "feature": "seller_rating",
+        "threshold": 3.98000002,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.48000002,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2567692.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 4.0869565,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 176.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 4.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00938365795
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.03999996,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2062753.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 1769.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0377566665
+      },
+      {
+        "leaf": true,
+        "value": -0.0696064532
+      },
+      {
+        "leaf": true,
+        "value": -0.0120855253
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.779999971,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 61.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.057987202
+      },
+      {
+        "leaf": true,
+        "value": -0.0126432171
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 5.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0805123076
+      },
+      {
+        "leaf": true,
+        "value": 0.0429512449
+      },
+      {
+        "leaf": true,
+        "value": -0.0185746718
+      },
+      {
+        "leaf": true,
+        "value": -0.0704808235
+      },
+      {
+        "leaf": true,
+        "value": -0.0161911324
+      },
+      {
+        "leaf": true,
+        "value": -0.0165139791
+      },
+      {
+        "leaf": true,
+        "value": 0.0310172122
+      }
+    ],
+    [
+      {
+        "feature": "seller_rating",
+        "threshold": 2.48000002,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 51.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 37.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2953829.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0520763658
+      },
+      {
+        "feature": "views",
+        "threshold": 2947.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 188.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 32.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 43.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0570649691
+      },
+      {
+        "leaf": true,
+        "value": 0.0134380329
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 3.5,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0226103906
+      },
+      {
+        "leaf": true,
+        "value": 0.0428860746
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 22.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0261758547
+      },
+      {
+        "leaf": true,
+        "value": 0.0541198626
+      },
+      {
+        "leaf": true,
+        "value": 0.0905752108
+      },
+      {
+        "leaf": true,
+        "value": 0.00368270394
+      },
+      {
+        "leaf": true,
+        "value": -0.0800098032
+      },
+      {
+        "leaf": true,
+        "value": -0.0283190738
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 3.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0514250807
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 19.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 14.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.26999998,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 402477.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0650433153
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 5.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0286049135
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 32.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 6.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 250737.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 8.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0669300854
+      },
+      {
+        "leaf": true,
+        "value": 0.0141136125
+      },
+      {
+        "leaf": true,
+        "value": 0.00021480993
+      },
+      {
+        "leaf": true,
+        "value": 0.0760233328
+      },
+      {
+        "leaf": true,
+        "value": -0.0259862076
+      },
+      {
+        "leaf": true,
+        "value": 0.0280761924
+      },
+      {
+        "leaf": true,
+        "value": -0.001342303
+      },
+      {
+        "leaf": true,
+        "value": -0.0589091666
+      },
+      {
+        "leaf": true,
+        "value": 0.0415935777
+      },
+      {
+        "leaf": true,
+        "value": -0.0574131273
+      }
+    ],
+    [
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 90.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 90.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0410104953
+      },
+      {
+        "feature": "views",
+        "threshold": 949.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 36.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0581533127
+      },
+      {
+        "feature": "views",
+        "threshold": 2265.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 3557.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.26999998,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0389076769
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.4000001,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 851.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0191442911
+      },
+      {
+        "leaf": true,
+        "value": 0.0676372051
+      },
+      {
+        "feature": "views",
+        "threshold": 2286.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0669937357
+      },
+      {
+        "leaf": true,
+        "value": 0.00536827464
+      },
+      {
+        "leaf": true,
+        "value": 0.0228826236
+      },
+      {
+        "leaf": true,
+        "value": -0.0461642854
+      },
+      {
+        "leaf": true,
+        "value": 0.0342078246
+      },
+      {
+        "leaf": true,
+        "value": -0.0321976393
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 124979.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 74.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 4.32999992,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0610909872
+      },
+      {
+        "leaf": true,
+        "value": 0.0130142197
+      },
+      {
+        "feature": "is_dealer",
+        "threshold": 1.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 70.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 2.15277767,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 91.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0092780618
+      },
+      {
+        "leaf": true,
+        "value": -0.067059271
+      },
+      {
+        "feature": "views",
+        "threshold": 1221.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 216390.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 56.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0413474143
+      },
+      {
+        "leaf": true,
+        "value": 0.00828510057
+      },
+      {
+        "leaf": true,
+        "value": 0.0886715055
+      },
+      {
+        "leaf": true,
+        "value": 0.0552819259
+      },
+      {
+        "leaf": true,
+        "value": -0.00462428248
+      },
+      {
+        "leaf": true,
+        "value": -0.000293810299
+      },
+      {
+        "leaf": true,
+        "value": -0.0588725396
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 3519941.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 3319.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4515.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 2381.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4232.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 949.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0212178752
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 38.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 7.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4600.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.00022205706
+      },
+      {
+        "leaf": true,
+        "value": 0.0740289763
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 14.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.061215736
+      },
+      {
+        "leaf": true,
+        "value": -0.0756720975
+      },
+      {
+        "leaf": true,
+        "value": -0.00169209449
+      },
+      {
+        "feature": "price",
+        "threshold": 296279.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0728155002
+      },
+      {
+        "leaf": true,
+        "value": -0.0467570424
+      },
+      {
+        "leaf": true,
+        "value": 0.0189103391
+      },
+      {
+        "leaf": true,
+        "value": 0.0163813159
+      },
+      {
+        "leaf": true,
+        "value": -0.0420131721
+      },
+      {
+        "leaf": true,
+        "value": -0.0347921401
+      },
+      {
+        "leaf": true,
+        "value": 0.0279500987
+      }
+    ],
+    [
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 179.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 169.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 418153.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 65570.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0615620725
+      },
+      {
+        "leaf": true,
+        "value": -0.0645334572
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 96.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0582349189
+      },
+      {
+        "feature": "price",
+        "threshold": 239861.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0168825593
+      },
+      {
+        "leaf": true,
+        "value": -0.0232670587
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 108.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.43000007,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0789252892
+      },
+      {
+        "leaf": true,
+        "value": -0.0116707217
+      },
+      {
+        "leaf": true,
+        "value": -0.022625206
+      },
+      {
+        "leaf": true,
+        "value": 0.0208051931
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 898906.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 176.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2004034.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.48000002,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0685600266
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 2.34567904,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2953829.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 4.0869565,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 2533.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0781771168
+      },
+      {
+        "leaf": true,
+        "value": 0.0146540357
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 7.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 49.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 258853.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0211517755
+      },
+      {
+        "feature": "views",
+        "threshold": 1420.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.069612883
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 2.04597712,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0630842596
+      },
+      {
+        "leaf": true,
+        "value": -0.0321019888
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 4.1500001,
+        "left": 27,
+        "right": 28,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0225919578
+      },
+      {
+        "leaf": true,
+        "value": -0.0669876561
+      },
+      {
+        "leaf": true,
+        "value": 0.0107379649
+      },
+      {
+        "leaf": true,
+        "value": -0.0435505062
+      },
+      {
+        "leaf": true,
+        "value": 0.0311159883
+      },
+      {
+        "leaf": true,
+        "value": -0.0357553922
+      },
+      {
+        "leaf": true,
+        "value": 0.0606586821
+      },
+      {
+        "leaf": true,
+        "value": -0.010538362
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 25013828.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 90.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0371412002
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 9.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 7.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0266046822
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 19.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 47.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 25.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 66.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 100.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 216390.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.00397303747
+      },
+      {
+        "leaf": true,
+        "value": 0.0797589645
+      },
+      {
+        "leaf": true,
+        "value": -0.0496742688
+      },
+      {
+        "leaf": true,
+        "value": 0.01753073
+      },
+      {
+        "leaf": true,
+        "value": -0.0144892773
+      },
+      {
+        "leaf": true,
+        "value": -0.0747497529
+      },
+      {
+        "leaf": true,
+        "value": -0.0102989962
+      },
+      {
+        "leaf": true,
+        "value": -0.0703117996
+      },
+      {
+        "leaf": true,
+        "value": -0.044075083
+      },
+      {
+        "leaf": true,
+        "value": 0.0212762021
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 14.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 853241.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 17.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 59.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0651089773
+      },
+      {
+        "leaf": true,
+        "value": -0.0686118677
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 167.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0309876949
+      },
+      {
+        "leaf": true,
+        "value": 0.0210753977
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 86.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2129611.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 1196.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0377957933
+      },
+      {
+        "leaf": true,
+        "value": 0.0560079105
+      },
+      {
+        "leaf": true,
+        "value": 0.0050930907
+      },
+      {
+        "leaf": true,
+        "value": -0.0427605249
+      },
+      {
+        "leaf": true,
+        "value": -0.00104641996
+      }
+    ],
+    [
+      {
+        "feature": "capture_count",
+        "threshold": 8.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 179.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 2.34567904,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 4.0869565,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 110.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00333977863
+      },
+      {
+        "leaf": true,
+        "value": -0.0537399463
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.48000002,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 155.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.00798023865
+      },
+      {
+        "leaf": true,
+        "value": -0.0489373393
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 160.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 4.1500001,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0722835883
+      },
+      {
+        "leaf": true,
+        "value": -0.00237338967
+      },
+      {
+        "leaf": true,
+        "value": -0.0293148812
+      },
+      {
+        "leaf": true,
+        "value": 0.03781683
+      },
+      {
+        "leaf": true,
+        "value": 0.0703945905
+      },
+      {
+        "leaf": true,
+        "value": -0.0122422967
+      }
+    ],
+    [
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.447761208,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0468888544
+      },
+      {
+        "feature": "views",
+        "threshold": 3152.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 12.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 78.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0259237923
+      },
+      {
+        "feature": "price",
+        "threshold": 101064.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 7.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0362981558
+      },
+      {
+        "leaf": true,
+        "value": -0.0663069114
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 5.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0325348191
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 32.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0425110571
+      },
+      {
+        "leaf": true,
+        "value": -0.0075484179
+      },
+      {
+        "leaf": true,
+        "value": -0.0084613394
+      },
+      {
+        "leaf": true,
+        "value": 0.0572304018
+      }
+    ],
+    [
+      {
+        "feature": "dealer_ratio",
+        "threshold": 14.166667,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 0.447761208,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.032497596
+      },
+      {
+        "leaf": true,
+        "value": 0.0367525034
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 10.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.064167574
+      },
+      {
+        "feature": "image_count",
+        "threshold": 8.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.08999991,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 2638.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0257984046
+      },
+      {
+        "leaf": true,
+        "value": 0.00544688804
+      },
+      {
+        "leaf": true,
+        "value": -0.0581401959
+      },
+      {
+        "leaf": true,
+        "value": 0.00162789901
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 18.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 853241.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 72.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 76.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 14.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 1.75999999,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 51.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0182103943
+      },
+      {
+        "leaf": true,
+        "value": -0.0728671774
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 2.60273981,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0430442393
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 35.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 42.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 32.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0200910643
+      },
+      {
+        "leaf": true,
+        "value": 0.0433759242
+      },
+      {
+        "leaf": true,
+        "value": 0.00168107194
+      },
+      {
+        "leaf": true,
+        "value": 0.0159495678
+      },
+      {
+        "leaf": true,
+        "value": 0.0604009405
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 70.0,
+        "left": 23,
+        "right": 24,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 155.0,
+        "left": 25,
+        "right": 26,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.00440326054
+      },
+      {
+        "leaf": true,
+        "value": -0.052775979
+      },
+      {
+        "leaf": true,
+        "value": -0.031665016
+      },
+      {
+        "leaf": true,
+        "value": 0.0220837463
+      },
+      {
+        "leaf": true,
+        "value": 0.0599834025
+      },
+      {
+        "leaf": true,
+        "value": -0.00130307244
+      }
+    ],
+    [
+      {
+        "feature": "views",
+        "threshold": 4515.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 441698.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 4746.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 1022.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 666.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.059395887
+      },
+      {
+        "leaf": true,
+        "value": 0.00321058487
+      },
+      {
+        "leaf": true,
+        "value": 0.0432344154
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 42.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0313282125
+      },
+      {
+        "feature": "verified_badge",
+        "threshold": 1.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.025705887
+      },
+      {
+        "feature": "price",
+        "threshold": 156051.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 2.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 4.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0154211344
+      },
+      {
+        "leaf": true,
+        "value": -0.0687618703
+      },
+      {
+        "leaf": true,
+        "value": -0.00255276123
+      },
+      {
+        "leaf": true,
+        "value": 0.0614181124
+      },
+      {
+        "leaf": true,
+        "value": 0.0373621136
+      },
+      {
+        "leaf": true,
+        "value": -0.0440703966
+      }
+    ],
+    [
+      {
+        "feature": "views",
+        "threshold": 784.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 7.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 2.48000002,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 5.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0291026477
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 43.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 78.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.00264651561
+      },
+      {
+        "leaf": true,
+        "value": -0.0638647303
+      },
+      {
+        "leaf": true,
+        "value": 0.0432400741
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 111.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 32.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0383324921
+      },
+      {
+        "feature": "views",
+        "threshold": 2759.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "feature": "views",
+        "threshold": 3392.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.00931985676
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 42.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.00930082705
+      },
+      {
+        "leaf": true,
+        "value": -0.046989087
+      },
+      {
+        "leaf": true,
+        "value": -0.0279632602
+      },
+      {
+        "leaf": true,
+        "value": 0.0454130508
+      },
+      {
+        "leaf": true,
+        "value": 0.0178793166
+      },
+      {
+        "leaf": true,
+        "value": 0.0571162365
+      }
+    ],
+    [
+      {
+        "feature": "is_dealer",
+        "threshold": 1.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "dealer_ratio",
+        "threshold": 2.15277767,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 112.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 7.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "image_count",
+        "threshold": 8.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 93.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0226272978
+      },
+      {
+        "feature": "price",
+        "threshold": 221456.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "seller_rating",
+        "threshold": 1.95000005,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 8.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0524645261
+      },
+      {
+        "leaf": true,
+        "value": -0.0699647143
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 154.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0159975309
+      },
+      {
+        "leaf": true,
+        "value": 0.0691857636
+      },
+      {
+        "leaf": true,
+        "value": -0.0295898952
+      },
+      {
+        "leaf": true,
+        "value": 0.0332657211
+      },
+      {
+        "feature": "price",
+        "threshold": 418153.0,
+        "left": 21,
+        "right": 22,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.03624193
+      },
+      {
+        "leaf": true,
+        "value": 0.0305151287
+      },
+      {
+        "leaf": true,
+        "value": -0.0360129103
+      },
+      {
+        "leaf": true,
+        "value": 0.0369140692
+      },
+      {
+        "leaf": true,
+        "value": -0.00550623937
+      }
+    ],
+    [
+      {
+        "feature": "price",
+        "threshold": 2707270.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 2214520.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 14.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 86.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 83.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0630204007
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 78.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "feature": "price",
+        "threshold": 65570.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0310596284
+      },
+      {
+        "leaf": true,
+        "value": -0.000856623461
+      },
+      {
+        "leaf": true,
+        "value": -0.0677680895
+      },
+      {
+        "feature": "days_on_market",
+        "threshold": 22.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 46.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.060226839
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 131.0,
+        "left": 19,
+        "right": 20,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.0530274473
+      },
+      {
+        "leaf": true,
+        "value": 0.00038889164
+      },
+      {
+        "leaf": true,
+        "value": 0.0458300896
+      },
+      {
+        "leaf": true,
+        "value": -0.00843404233
+      },
+      {
+        "leaf": true,
+        "value": -0.0197166875
+      },
+      {
+        "leaf": true,
+        "value": 0.0193858873
+      }
+    ],
+    [
+      {
+        "feature": "days_on_market",
+        "threshold": 57.0,
+        "left": 1,
+        "right": 2,
+        "leaf": false
+      },
+      {
+        "feature": "fav_count",
+        "threshold": 141.0,
+        "left": 3,
+        "right": 4,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0332804285
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 88.0,
+        "left": 5,
+        "right": 6,
+        "leaf": false
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 7,
+        "right": 8,
+        "leaf": false
+      },
+      {
+        "feature": "is_boost",
+        "threshold": 1.0,
+        "left": 9,
+        "right": 10,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0369193889
+      },
+      {
+        "feature": "seller_feedback_count",
+        "threshold": 73.0,
+        "left": 11,
+        "right": 12,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": 0.0597870462
+      },
+      {
+        "feature": "seller_adverts_count",
+        "threshold": 70.0,
+        "left": 13,
+        "right": 14,
+        "leaf": false
+      },
+      {
+        "feature": "is_dealer",
+        "threshold": 1.0,
+        "left": 15,
+        "right": 16,
+        "leaf": false
+      },
+      {
+        "feature": "capture_count",
+        "threshold": 6.0,
+        "left": 17,
+        "right": 18,
+        "leaf": false
+      },
+      {
+        "leaf": true,
+        "value": -0.05234579
+      },
+      {
+        "leaf": true,
+        "value": -0.0326742642
+      },
+      {
+        "leaf": true,
+        "value": 0.032047715
+      },
+      {
+        "leaf": true,
+        "value": -0.071062088
+      },
+      {
+        "leaf": true,
+        "value": 0.015165979
+      },
+      {
+        "leaf": true,
+        "value": -0.0264131222
+      },
+      {
+        "leaf": true,
+        "value": 0.0479873084
+      }
+    ]
+  ],
+  "baseScore": 0.5,
+  "metrics": {
+    "auc": 0.7512626262626262,
+    "accuracy": 0.6777777777777778,
+    "baseline_accuracy": 0.7333333333333333,
+    "lift": -0.05555555555555547,
+    "n_train": 360,
+    "n_val": 90,
+    "best_iteration": 47
+  }
+}

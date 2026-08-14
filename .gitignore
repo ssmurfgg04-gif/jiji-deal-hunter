@@ -42,6 +42,10 @@ ml-models/*.json
 ml-models/*.ubj
 ml-models/*.bin
 !ml-models/.gitkeep
+# Exception: the v3 baseline model is small (~165KB) and the scorer auto-loads
+# it on startup. Track it so a fresh clone can score deals immediately.
+!ml-models/deal_scorer_v3.json
+!ml-models/training_metrics_v3.json
 
 # OS
 .DS_Store
