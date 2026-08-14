@@ -210,8 +210,10 @@ def engineer_features(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
     # If we have an existing classification from the weighted-features scorer,
     # use it as the weak label. Otherwise synthesize one from heuristics.
     def weak_label(row):
-        if pd.notna(row["existing_classification"]):
-            return row["existing_classification"]
+        # NOTE: we intentionally do NOT use existing_classification here.
+        # The TS scorer's output is a heuristic, not ground truth — training
+        # on it would just teach XGBoost to mimic the heuristic. Instead we
+        # apply our own labeling heuristics calibrated to the recon data.
         # Heuristic fallback — calibrated to produce all 4 classes on the seed data
         # SCAM: strong scam signals
         if row["abuse_reported"] == 1 or row.get("cross_market_broker", 0) == 1:
@@ -221,32 +223,27 @@ def engineer_features(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
         # Price below market valuation = too good to be true = likely scam
         if row.get("below_market_valuation", 0) == 1:
             return "SCAM"
-        # GREAT: below median + established seller
-        if row["price_vs_median"] > 0.15 and row["seller_account_age_days"] >= 30:
+        # VERY high views but no favorites = overpriced/scam bait
+        if row["views"] is not None and row["views"] > 1000 and (row["fav_count"] or 0) < 2:
+            return "SCAM"
+        # GREAT: significantly below median price (good deal)
+        if row["price_vs_median"] > 0.20:
             return "GREAT"
-        if row["price_vs_median"] > 0.2 and row["seller_rating"] >= 50:
-            return "GREAT"
-        # RISKY: dealer or very low views or overpriced
+        # RISKY: dealer (high adverts/fb ratio) or very overpriced
         if row["dealer_ratio"] > 50 or row.get("is_dealer", 0) == 1:
             return "RISKY"
-        if row["price_vs_median"] < -0.2:
+        if row["price_vs_median"] < -0.15:
             return "RISKY"
-        if row["views"] < 5:
+        if row["views"] is not None and row["views"] < 10:
             return "RISKY"
         # Otherwise: FAIR
         return "FAIR"
 
     df["label"] = df.apply(weak_label, axis=1)
 
-    # Remap labels to contiguous 0..N indices (XGBoost requirement).
-    # If a class has zero samples, drop it from the training set.
-    present_labels = sorted(df["label"].unique())
-    LABEL_TO_ID_LOCAL = {label: i for i, label in enumerate(present_labels)}
-    df["label_id"] = df["label"].map(LABEL_TO_ID_LOCAL)
-    # Persist the actual label order in a global so the trainer can use it
-    global LABELS, LABEL_TO_ID
-    LABELS = present_labels
-    LABEL_TO_ID = LABEL_TO_ID_LOCAL
+    # NOTE: label-to-id remap is deferred to train_model() so it can be
+    # computed over the TRAIN set only (avoids val set containing classes
+    # not in train on small datasets).
 
     # Build X with the canonical feature columns
     X = df[FEATURE_COLUMNS].copy()
@@ -254,7 +251,7 @@ def engineer_features(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
     X = X.fillna(0)
     # Cast to float32 for memory efficiency
     X = X.astype(np.float32)
-    y = df["label_id"]
+    y = df["label"]
 
     return X, y
 
@@ -263,10 +260,32 @@ def train_model(X: pd.DataFrame, y: pd.Series) -> dict:
     """
     Train XGBoost with the speed/memory knobs from the optimization notes.
     """
-    # Train/val split (80/20)
+    # Train/val split — use stratify only if every class has >= 2 samples
+    class_counts = y.value_counts()
+    can_stratify = class_counts.min() >= 2
     X_train, X_val, y_train, y_val = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
+        X, y, test_size=0.2, random_state=42,
+        stratify=y if can_stratify else None,
     )
+
+    # Recompute label map over the TRAIN set only (val may contain classes
+    # not in train on tiny datasets — drop those rows from val to avoid
+    # XGBoost "label must be in [0, num_class)" errors)
+    train_labels = sorted(y_train.unique())
+    global LABELS, LABEL_TO_ID
+    LABELS = train_labels
+    LABEL_TO_ID = {label: i for i, label in enumerate(train_labels)}
+
+    # Filter val set to only labels present in train
+    val_mask = y_val.isin(train_labels)
+    if not val_mask.all():
+        print(f"[train] Dropping {(~val_mask).sum()} val rows with labels not in train")
+        X_val = X_val[val_mask]
+        y_val = y_val[val_mask]
+
+    # Remap to contiguous 0..N
+    y_train = y_train.map(LABEL_TO_ID)
+    y_val = y_val.map(LABEL_TO_ID)
 
     # If only 2 classes, use binary objective; else multi-class.
     n_classes = len(LABELS)
@@ -396,6 +415,10 @@ def main():
     if len(df) < 50:
         print(f"[train] WARNING: Only {len(df)} rows — XGBoost will overfit. Need 500+ for a real model.")
         print("[train] Proceeding anyway (this is a smoke test on the 16-row seed).")
+        print("[train] The weighted-features scorer in src/lib/deal-scorer.ts will be used")
+        print("[train] at inference time as the primary scorer; this model is a baseline.")
+        print("[train] Run scripts/wayback-miner.ts locally to mine ~800 real archived")
+        print("[train] listings from web.archive.org, then retrain for a production model.")
 
     print("[train] Engineering features...")
     X, y = engineer_features(df)
@@ -410,6 +433,15 @@ def main():
     print(f"[train] Model saved to {MODEL_PATH}")
     print(f"[train] Features saved to {FEATURE_NAMES_PATH}")
     print(f"[train] Metrics saved to {METRICS_PATH}")
+
+    # Honest assessment
+    if metrics["accuracy"] < 0.5:
+        print()
+        print("[train] ⚠  Val accuracy below 50% — model is not reliable for production use.")
+        print("[train]    The weighted-features scorer (src/lib/deal-scorer.ts) remains the")
+        print("[train]    primary scorer. Retrain after mining more data with:")
+        print("[train]    bun scripts/wayback-miner.ts")
+        print("[train]    (requires internet access to web.archive.org)")
 
     conn.close()
 

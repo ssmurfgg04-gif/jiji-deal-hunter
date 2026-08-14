@@ -2,15 +2,57 @@
 
 Multi-market classifieds intelligence platform for [Jiji.co.ke](https://jiji.co.ke) (and Nigeria, Ghana, Tanzania, Uganda). API-first collector with recon-derived scam signals, image-hash dedup, XGBoost deal scoring, and a real-time dashboard.
 
+## ⚠️ Read this first
+
+**Cloudflare blocks datacenter IPs.** Jiji.co.ke sits behind Cloudflare's anti-bot challenge. From a cloud/datacenter IP, the API returns 403 + a JS challenge page. From a residential IP, it returns clean JSON.
+
+This is **not** something httpx, curl, or any plain HTTP client can bypass — Cloudflare's challenge requires executing JavaScript in a real browser context. Libraries that spoof TLS fingerprints (curl_cffi etc.) exist specifically to circumvent this, and I won't use them.
+
+**What this means for you:**
+- The dashboard's `BLOCKED` badge will show red when run from a cloud server.
+- Deploy to a VPS on a residential ISP, or run locally on your home connection — the badge flips to `LIVE API` automatically.
+- The Wayback miner (`scripts/wayback-miner.ts`) works from anywhere because it queries `web.archive.org`, not Jiji directly.
+
+## 5-minute setup
+
+```bash
+git clone https://github.com/ssmurfgg04-gif/jiji-deal-hunter.git
+cd jiji-deal-hunter
+bun install
+
+# 1. Push schema to SQLite + apply WAL mode + indexes
+bun run db:push
+
+# 2. Seed 16 verified real archived listings (from recon)
+bun scripts/seed-csv.ts
+
+# 3. Mine ~800 more real archived listings from web.archive.org
+#    (requires internet access to web.archive.org — runs from your machine)
+bun scripts/wayback-miner.ts
+
+# 4. Train XGBoost on real archived data
+python3 scripts/train-xgboost.py
+
+# 5. Score all listings
+bun scripts/rescore.ts
+
+# 6. Start the dashboard
+bun run dev
+```
+
+Open `http://localhost:3000`. The dashboard auto-seeds on first load.
+
 ## What it does
 
 - **Live API collection** — Direct calls to `api_web/v1/*` endpoints (no browser, no Cloudflare bypass). Multi-market support.
+- **Wayback mining** — Passive archival mining of ~800 historical listings from web.archive.org. No Jiji traffic.
 - **Market census** — One request to `categories_counts.json` returns all category IDs + live listing counts.
 - **Category feed pagination** — Follows `next_url` + `lid` for infinite scroll without page guessing.
 - **Seller inventory** — Fetches every ad a seller has, exposing `user_phone` on each (second phone-leak channel).
 - **Image hash dedup** — Zero-download content-hash extraction from Jiji image URLs. Detects relists, scam rings, and cross-market brokers.
 - **Recon-derived scam signals** — `date_edited`/`date_moderated` churn, `sold_reported` ghost listings, `abuse_reported`, `is_boost`/`paid_info`, dealer ratio, `price_valuation` bands.
-- **XGBoost deal scorer** — Trained on real archived listings. 35 features including the recon-derived signals. Falls back to weighted-features scorer if model is unavailable.
+- **Location-based recommendations** — Buyer location selector computes haversine distance to each seller, flags cross-border shipping-scam risk.
+- **XGBoost deal scorer** — Trained on real archived listings. 35 features including the recon-derived signals. Falls back to weighted-features scorer if model accuracy is too low.
 - **Auto-collection scheduler** — Server-side cron hits the API every 30 minutes (configurable via env).
 - **Proxy pool** — Target-tested validation (tests against the actual Jiji site, not httpbin).
 - **Cache layer** — SQLite WAL mode + indexes + in-memory cache. 100x write throughput, 1000x query speed.

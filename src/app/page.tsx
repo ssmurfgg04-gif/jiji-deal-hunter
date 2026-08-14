@@ -107,6 +107,11 @@ interface EnrichedListing {
     isDealer: boolean;
   };
   marketMedian: number;
+  locationRisk: {
+    distanceKm: number | null;
+    riskScore: number;
+    riskLabel: "local" | "regional" | "distant" | "cross-border" | "unknown";
+  } | null;
   score: {
     score: number;
     classification: DealClass;
@@ -282,6 +287,7 @@ export default function Home() {
   const [classification, setClassification] = useState("all");
   const [sort, setSort] = useState("-deal");
   const [filterMode, setFilterMode] = useState<"abuse" | "ghost" | "broker" | null>(null);
+  const [buyerLoc, setBuyerLoc] = useState<string>("");
 
   // Tick "now" every 30s
   useEffect(() => {
@@ -301,6 +307,7 @@ export default function Home() {
       if (filterMode === "abuse") params.set("abuse", "1");
       if (filterMode === "ghost") params.set("ghost", "1");
       if (filterMode === "broker") params.set("broker", "1");
+      if (buyerLoc) params.set("buyerLoc", buyerLoc);
       const resp = await fetch(`/api/listings?${params.toString()}`);
       const data = await resp.json();
       setListings(data.listings ?? []);
@@ -309,7 +316,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [q, marketFilter, category, classification, sort, filterMode]);
+  }, [q, marketFilter, category, classification, sort, filterMode, buyerLoc]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -493,7 +500,7 @@ export default function Home() {
   useEffect(() => {
     const t = setTimeout(() => fetchListings(), 250);
     return () => clearTimeout(t);
-  }, [q, marketFilter, category, classification, sort, filterMode, fetchListings]);
+  }, [q, marketFilter, category, classification, sort, filterMode, buyerLoc, fetchListings]);
 
   // Auto-refresh stats + scheduler + status every 60s
   useEffect(() => {
@@ -780,12 +787,10 @@ export default function Home() {
               <SelectItem value="price-desc">Price: high to low</SelectItem>
               <SelectItem value="recent">Recently collected</SelectItem>
               <SelectItem value="risk">Highest risk first</SelectItem>
+              <SelectItem value="distance">Closest to me</SelectItem>
             </SelectContent>
           </Select>
-          <Select
-            value={filterMode ?? "none"}
-            onValueChange={(v) => setFilterMode(v === "none" ? null : (v as any))}
-          >
+          <Select value={filterMode ?? "none"} onValueChange={(v) => setFilterMode(v === "none" ? null : (v as any))}>
             <SelectTrigger className="md:w-40">
               <SelectValue placeholder="Special filters" />
             </SelectTrigger>
@@ -794,6 +799,29 @@ export default function Home() {
               <SelectItem value="abuse">Abuse-flagged only</SelectItem>
               <SelectItem value="ghost">Ghost listings only</SelectItem>
               <SelectItem value="broker">Cross-market brokers</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={buyerLoc || "none"} onValueChange={(v) => setBuyerLoc(v === "none" ? "" : v)}>
+            <SelectTrigger className="md:w-40">
+              <SelectValue placeholder="Your location" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No location set</SelectItem>
+              <SelectItem value="nairobi">Nairobi</SelectItem>
+              <SelectItem value="mombasa">Mombasa</SelectItem>
+              <SelectItem value="kisumu">Kisumu</SelectItem>
+              <SelectItem value="nakuru">Nakuru</SelectItem>
+              <SelectItem value="eldoret">Eldoret</SelectItem>
+              <SelectItem value="thika">Thika</SelectItem>
+              <SelectItem value="kiambu">Kiambu</SelectItem>
+              <SelectItem value="machakos">Machakos</SelectItem>
+              <SelectItem value="kikuyu">Kikuyu</SelectItem>
+              <SelectItem value="ruiru">Ruiru</SelectItem>
+              <SelectItem value="nyeri">Nyeri</SelectItem>
+              <SelectItem value="meru">Meru</SelectItem>
+              <SelectItem value="kakamega">Kakamega</SelectItem>
+              <SelectItem value="malindi">Malindi</SelectItem>
+              <SelectItem value="garissa">Garissa</SelectItem>
             </SelectContent>
           </Select>
           <div className="md:ml-auto text-xs text-muted-foreground">
@@ -812,6 +840,7 @@ export default function Home() {
                 <TableHead>Score</TableHead>
                 <TableHead>Seller</TableHead>
                 <TableHead>Contact</TableHead>
+                {buyerLoc && <TableHead>Distance</TableHead>}
                 <TableHead>Scam Signals</TableHead>
                 <TableHead className="w-12" />
               </TableRow>
@@ -820,14 +849,14 @@ export default function Home() {
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={8}>
+                    <TableCell colSpan={buyerLoc ? 9 : 8}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : listings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
+                  <TableCell colSpan={buyerLoc ? 9 : 8} className="text-center text-muted-foreground py-12">
                     No listings in DB. Use the search bar above to query Jiji live, or click Collect.
                   </TableCell>
                 </TableRow>
@@ -925,6 +954,36 @@ export default function Home() {
                           <span className="text-xs text-muted-foreground">No phone</span>
                         )}
                       </TableCell>
+                      {buyerLoc && (
+                        <TableCell>
+                          {l.locationRisk ? (
+                            <div className="flex flex-col">
+                              <span className="text-xs font-medium">
+                                {l.locationRisk.distanceKm != null
+                                  ? `${Math.round(l.locationRisk.distanceKm)} km`
+                                  : "—"}
+                              </span>
+                              <span
+                                className={`text-[10px] ${
+                                  l.locationRisk.riskLabel === "local"
+                                    ? "text-emerald-600"
+                                    : l.locationRisk.riskLabel === "regional"
+                                      ? "text-amber-600"
+                                      : l.locationRisk.riskLabel === "distant"
+                                        ? "text-orange-600"
+                                        : l.locationRisk.riskLabel === "cross-border"
+                                          ? "text-red-600"
+                                          : "text-muted-foreground"
+                                }`}
+                              >
+                                {l.locationRisk.riskLabel}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {l.score?.hasFakeDiscount && (
@@ -994,7 +1053,7 @@ export default function Home() {
                     </TableRow>
                     {expandedRow === l.id && (
                       <TableRow key={`${l.id}-expanded`} className="bg-muted/30">
-                        <TableCell colSpan={8} className="p-4">
+                        <TableCell colSpan={buyerLoc ? 9 : 8} className="p-4">
                           <ExpandedRow loading={historyLoading} history={history} listing={l} />
                         </TableCell>
                       </TableRow>
