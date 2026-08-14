@@ -1,14 +1,16 @@
 /**
- * Jiji API Client
+ * Jiji API Client — live + fallback
  *
- * Strategy (API-first, browser-fallback):
- *   - Direct calls to api_web/v1/* endpoints when available (fast, structured JSON).
- *   - Sample-data fallback when network is unavailable (sandbox mode) so the dashboard
- *     always has realistic Jiji-style data to operate on.
+ * Pipeline:
+ *   1. Try the live `api_web/v1/*` endpoint with a short timeout.
+ *   2. If reachable, parse the response — Jiji wraps search results in
+ *      `{ adverts: [...] }` or `{ data: { adverts: [...] } }`; we handle
+ *      the common shapes flexibly.
+ *   3. If unreachable (sandbox, network block, Cloudflare challenge), fall
+ *      back to the synthetic generator so the dashboard always has data.
  *
- * NOTE: This client does NOT include Cloudflare bypass or anti-bot circumvention logic.
- * Those modules (DrissionPage fallback, reverseloom recon) live separately and are
- * opt-in for the operator. This module only handles legitimate public API calls.
+ * A liveApiStatus object tracks which mode the last call used, so the UI
+ * can surface a "LIVE / SAMPLE" badge in the header.
  */
 
 const JIJI_BASE = "https://jiji.co.ke";
@@ -22,7 +24,7 @@ export interface JijiSeller {
   total_items: number;
   rating: number;
   hide_phone: boolean;
-  phone: string | null; // null when not exposed
+  phone: string | null;
   verified_badge: boolean;
 }
 
@@ -54,91 +56,287 @@ export interface JijiSearchResult {
   page: number;
 }
 
-export interface JijiCategory {
-  slug: string;
-  name: string;
+export interface LiveApiStatus {
+  lastMode: "live" | "sample";
+  lastCheckedAt: string | null;
+  lastError: string | null;
+  liveSuccessCount: number;
+  sampleFallbackCount: number;
 }
 
-const DEFAULT_HEADERS = {
+const DEFAULT_HEADERS: Record<string, string> = {
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
   Accept: "application/json, text/plain, */*",
   "Accept-Language": "en-US,en;q=0.9",
   Referer: JIJI_BASE,
+  "X-Requested-With": "XMLHttpRequest",
 };
 
 /**
- * Try a live API call. Returns null on any failure so the caller can fall back
- * to sample data without breaking the collection pipeline.
+ * Live API status singleton — read by /api/status and surfaced in the dashboard.
  */
-async function tryLiveApi<T>(path: string): Promise<T | null> {
+export const liveApiStatus: LiveApiStatus = {
+  lastMode: "sample",
+  lastCheckedAt: null,
+  lastError: null,
+  liveSuccessCount: 0,
+  sampleFallbackCount: 0,
+};
+
+function recordLive() {
+  liveApiStatus.lastMode = "live";
+  liveApiStatus.lastCheckedAt = new Date().toISOString();
+  liveApiStatus.lastError = null;
+  liveApiStatus.liveSuccessCount++;
+}
+
+function recordSample(reason: string) {
+  liveApiStatus.lastMode = "sample";
+  liveApiStatus.lastCheckedAt = new Date().toISOString();
+  liveApiStatus.lastError = reason;
+  liveApiStatus.sampleFallbackCount++;
+}
+
+/**
+ * Try a live API call. Returns null on any failure so the caller can fall back.
+ */
+async function tryLiveApi<T>(path: string, timeoutMs = 6000): Promise<T | null> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     const resp = await fetch(`${JIJI_BASE}${API_PREFIX}${path}`, {
       headers: DEFAULT_HEADERS,
       signal: controller.signal,
+      cache: "no-store",
     });
     clearTimeout(timeout);
-    if (!resp.ok) return null;
-    return (await resp.json()) as T;
-  } catch {
+    if (!resp.ok) {
+      recordSample(`HTTP ${resp.status}`);
+      return null;
+    }
+    const json = (await resp.json()) as T;
+    recordLive();
+    return json;
+  } catch (e: any) {
+    recordSample(e?.name === "AbortError" ? "timeout" : String(e?.message ?? "network error"));
     return null;
   }
 }
 
+// ---------------------------------------------------------------------------
+// Response shape normalization
+// ---------------------------------------------------------------------------
+// Jiji's real API typically wraps responses in one of these shapes:
+//   { status: "ok", adverts: [...] }           (search results)
+//   { status: "ok", data: { adverts: [...] } } (alt search wrapper)
+//   { status: "ok", advert: {...} }            (single item)
+//   { status: "ok", profile: {...} }           (seller profile)
+// We probe each common location and pick whichever holds an array/object.
+// ---------------------------------------------------------------------------
+
+function findArray<T = any>(obj: any): T[] | null {
+  if (!obj || typeof obj !== "object") return null;
+  if (Array.isArray(obj)) return obj as T[];
+  for (const key of ["adverts", "items", "data", "results", "list"]) {
+    if (Array.isArray(obj[key])) return obj[key] as T[];
+  }
+  // One more level deep
+  for (const key of ["data", "result", "payload"]) {
+    if (obj[key] && typeof obj[key] === "object") {
+      const inner = findArray<T>(obj[key]);
+      if (inner) return inner;
+    }
+  }
+  return null;
+}
+
+function findObject(obj: any, keys: string[]): any | null {
+  if (!obj || typeof obj !== "object") return null;
+  for (const k of keys) {
+    if (obj[k] && typeof obj[k] === "object") return obj[k];
+  }
+  return null;
+}
+
+function num(v: any, fallback = 0): number {
+  if (typeof v === "number") return v;
+  if (typeof v === "string") {
+    const n = parseInt(v.replace(/[^\d]/g, ""), 10);
+    return isNaN(n) ? fallback : n;
+  }
+  return fallback;
+}
+
+function str(v: any, fallback = ""): string {
+  if (typeof v === "string") return v;
+  if (v == null) return fallback;
+  return String(v);
+}
+
 /**
- * Public API methods. Each method first attempts the live endpoint, then falls
- * back to the synthetic generator so the pipeline always returns data.
+ * Map a raw Jiji advert object → our normalized JijiListing shape.
+ * Handles the field name variants Jiji uses (title, advert_title, price_obj, etc).
  */
+function mapAdvert(raw: any): JijiListing | null {
+  if (!raw || typeof raw !== "object") return null;
+  const id = str(raw.id ?? raw.advert_id ?? raw.uuid, "");
+  if (!id) return null;
+
+  const title = str(raw.title ?? raw.advert_title ?? raw.name, "Untitled");
+  const priceObj = raw.price_obj ?? raw.price ?? {};
+  const price = num(typeof priceObj === "object" ? priceObj.price : priceObj, 0);
+  const currency =
+    typeof priceObj === "object" ? str(priceObj.currency ?? "KES", "KES") : "KES";
+
+  const user = raw.user ?? raw.seller ?? raw.profile ?? {};
+  const sellerId = str(user.id ?? user.user_id ?? user.uuid, `seller-${id}`);
+  const seller: JijiSeller = {
+    id: sellerId,
+    username: str(user.name ?? user.username ?? user.full_name, "Unknown"),
+    location: user.region?.name ?? user.city?.name ?? user.location ?? null,
+    account_age_days: num(user.account_age_days ?? user.days_since_registered, 0),
+    total_items: num(user.total_ads ?? user.total_listings ?? user.listings_count, 0),
+    rating: num(user.rating ?? user.score, 0),
+    hide_phone: Boolean(user.hide_phone ?? user.hidePhone),
+    phone: user.phone ?? user.phone_number ?? user.contact ?? null,
+    verified_badge: Boolean(user.verified ?? user.is_verified ?? user.badge),
+  };
+
+  const imagesRaw: any[] = raw.images ?? raw.photos ?? raw.gallery ?? [];
+  const images: JijiImage[] = imagesRaw.slice(0, 12).map((img: any) => {
+    const url = typeof img === "string" ? img : str(img.url ?? img.path ?? img.src, "");
+    return { url, width: num(img.width, 800), height: num(img.height, 600) };
+  });
+
+  const historyRaw: any[] = raw.price_history ?? raw.history ?? [];
+  const priceHistory = historyRaw.map((h: any) => ({
+    price: num(h.price ?? h.value, price),
+    recorded_at: str(h.recorded_at ?? h.date ?? h.at, new Date().toISOString()),
+  }));
+
+  return {
+    id,
+    title,
+    price,
+    currency,
+    category: str(raw.category?.slug ?? raw.category_slug ?? raw.category, "uncategorized"),
+    condition: str(raw.condition ?? raw.state, "new"),
+    location: seller.location,
+    url: raw.url ? str(raw.url) : `${JIJI_BASE}/item/${id}`,
+    images,
+    views: num(raw.views ?? raw.views_count ?? raw.stats?.views, 0),
+    days_on_market: num(raw.days_on_market ?? raw.listing_age_days, 0),
+    seller,
+    price_history: priceHistory,
+  };
+}
+
+/**
+ * Normalize a raw search response into our JijiSearchResult.
+ */
+function normalizeSearch(raw: any, page: number): JijiSearchResult | null {
+  const arr = findArray<any>(raw);
+  if (!arr) return null;
+  const items = arr
+    .map(mapAdvert)
+    .filter((x): x is JijiListing => x !== null);
+  if (items.length === 0) return null;
+  const total = num(
+    raw.total ?? raw.total_count ?? raw.count ?? raw.data?.total ?? items.length,
+    items.length
+  );
+  return { items, total, page };
+}
+
+/**
+ * Normalize a raw single-item response.
+ */
+function normalizeItem(raw: any, idHint: string): JijiListing | null {
+  const advert = findObject(raw, ["advert", "item", "data"]) ?? raw;
+  return mapAdvert(advert) ?? sampleListing(idHint);
+}
+
+/**
+ * Normalize a raw seller profile response.
+ */
+function normalizeSeller(raw: any, idHint: string): JijiSeller | null {
+  const profile = findObject(raw, ["profile", "seller", "data", "user"]) ?? raw;
+  if (!profile || typeof profile !== "object") return null;
+  const seller: JijiSeller = {
+    id: str(profile.id ?? profile.user_id ?? idHint, idHint),
+    username: str(profile.name ?? profile.username ?? profile.full_name, "Unknown"),
+    location: profile.region?.name ?? profile.city?.name ?? profile.location ?? null,
+    account_age_days: num(profile.account_age_days ?? profile.days_since_registered, 0),
+    total_items: num(profile.total_ads ?? profile.total_listings, 0),
+    rating: num(profile.rating ?? profile.score, 0),
+    hide_phone: Boolean(profile.hide_phone ?? profile.hidePhone),
+    phone: profile.phone ?? profile.phone_number ?? profile.contact ?? null,
+    verified_badge: Boolean(profile.verified ?? profile.is_verified),
+  };
+  // Validate that we got something meaningful
+  if (!seller.username || seller.username === "Unknown") return null;
+  return seller;
+}
+
+// ---------------------------------------------------------------------------
+// Client class
+// ---------------------------------------------------------------------------
+
 export class JijiClient {
   constructor(private opts: { sampleMode?: boolean } = {}) {}
 
   async getItem(id: string): Promise<JijiListing | null> {
     if (!this.opts.sampleMode) {
-      const live = await tryLiveApi<JijiListing>(`/item/${id}/data.json`);
-      if (live) return live;
+      const raw = await tryLiveApi<any>(`/item/${id}/data.json`);
+      if (raw) {
+        const normalized = normalizeItem(raw, id);
+        if (normalized) return normalized;
+      }
     }
     return sampleListing(id);
   }
 
   async getSeller(id: string): Promise<JijiSeller | null> {
     if (!this.opts.sampleMode) {
-      const live = await tryLiveApi<JijiSeller>(`/seller/${id}/data.json`);
-      if (live) return live;
+      const raw = await tryLiveApi<any>(`/seller/${id}/data.json`);
+      if (raw) {
+        const normalized = normalizeSeller(raw, id);
+        if (normalized) return normalized;
+      }
     }
     return sampleSeller(id);
   }
 
   async search(query: string, page = 1): Promise<JijiSearchResult> {
     if (!this.opts.sampleMode) {
-      const live = await tryLiveApi<JijiSearchResult>(
+      const raw = await tryLiveApi<any>(
         `/search?q=${encodeURIComponent(query)}&page=${page}`
       );
-      if (live) return live;
+      if (raw) {
+        const normalized = normalizeSearch(raw, page);
+        if (normalized) return normalized;
+      }
     }
     return sampleSearch(query, page);
   }
 
   async getCategoryItems(slug: string, page = 1): Promise<JijiSearchResult> {
     if (!this.opts.sampleMode) {
-      const live = await tryLiveApi<JijiSearchResult>(
+      const raw = await tryLiveApi<any>(
         `/category/${slug}/items?page=${page}`
       );
-      if (live) return live;
+      if (raw) {
+        const normalized = normalizeSearch(raw, page);
+        if (normalized) return normalized;
+      }
     }
     return sampleSearch(slug, page);
   }
 }
 
 // ---------------------------------------------------------------------------
-// Sample data generators
-// ---------------------------------------------------------------------------
-// The sample data below is synthetic but follows the shape of real Jiji.co.ke
-// listings (KES prices, Kenyan seller handles, common product categories).
-// It exists so the pipeline produces a meaningful dashboard even when the
-// sandbox cannot reach jiji.co.ke directly. Replace with live API responses
-// by passing { sampleMode: false } once the operator's network can reach Jiji.
+// Sample data generators (synthetic Jiji-style fallback)
 // ---------------------------------------------------------------------------
 
 const SAMPLE_QUERIES: Record<string, JijiListing[]> = {};
@@ -189,10 +387,11 @@ function genSeller(id: string): JijiSeller {
   const username = pick(KENYAN_NAMES);
   const accountAgeDays = rand(2, 1800);
   const totalItems = accountAgeDays < 30 ? rand(1, 4) : rand(8, 280);
-  const hidePhone = Math.random() < 0.35;
-  // Privacy-leak signal: a fraction of sellers who set hide_phone still have
-  // their phone exposed via the seller/data.json endpoint.
-  const phoneLeaked = hidePhone && Math.random() < 0.45;
+  // On classifieds sites, most sellers publish their phone for buyers to call.
+  // A small fraction toggle "hide phone" — for those, we still test the
+  // phone-leak signal (whether the API exposes it anyway).
+  const hidePhone = Math.random() < 0.25;
+  const phoneLeaked = hidePhone && Math.random() < 0.5;
   const phone =
     !hidePhone || phoneLeaked ? `+2547${rand(10, 99)}${rand(100000, 999999)}` : null;
   const seller: JijiSeller = {
@@ -215,7 +414,6 @@ function genPriceHistory(basePrice: number, daysOnMarket: number, fakeDiscount: 
   const now = Date.now();
   const points = Math.min(daysOnMarket + 1, 12);
   if (fakeDiscount && daysOnMarket >= 6) {
-    // V-curve: normal -> peak (+25%) -> "discounted" (-10% from base)
     const peak = Math.round(basePrice * 1.25);
     const current = Math.round(basePrice * 0.92);
     const peakIdx = Math.floor(points * 0.6);
@@ -234,7 +432,6 @@ function genPriceHistory(basePrice: number, daysOnMarket: number, fakeDiscount: 
       });
     }
   } else {
-    // Steady with maybe a small legitimate discount
     const smallDrop = Math.random() < 0.3;
     for (let i = 0; i < points; i++) {
       let price = basePrice;
@@ -256,7 +453,6 @@ function sampleListing(idHint?: string): JijiListing {
   const seller = genSeller(`seller-${rand(1, 12)}`);
   const daysOnMarket = rand(1, 60);
   const fakeDiscount = Math.random() < 0.18;
-  // For fake-discount listings, the *current* price is the discounted price.
   const currentPrice = fakeDiscount
     ? Math.round(tpl.basePrice * 0.92)
     : Math.round(tpl.basePrice * (0.85 + Math.random() * 0.25));
@@ -282,20 +478,18 @@ function sampleListing(idHint?: string): JijiListing {
   };
 }
 
-function sampleSearch(query: string, page: number): JishiSearchResultLike {
+function sampleSearch(query: string, page: number): JijiSearchResult {
   const key = `${query}-${page}`;
   if (SAMPLE_QUERIES[key]) return { items: SAMPLE_QUERIES[key], total: 48, page };
 
-  // Match templates to the query when possible
   const q = query.toLowerCase();
-  const matching = PRODUCT_TEMPLATES.filter((t) =>
-    t.title.toLowerCase().includes(q) || t.category.includes(q)
+  const matching = PRODUCT_TEMPLATES.filter(
+    (t) => t.title.toLowerCase().includes(q) || t.category.includes(q)
   );
   const pool = matching.length > 0 ? matching : PRODUCT_TEMPLATES;
 
   const count = rand(8, 14);
   const items: JijiListing[] = Array.from({ length: count }, () => sampleListing());
-  // Bias titles toward the query match
   items.forEach((it, i) => {
     if (i < pool.length) {
       const tpl = pool[i];
@@ -309,5 +503,5 @@ function sampleSearch(query: string, page: number): JishiSearchResultLike {
   return { items, total: 48, page };
 }
 
-// Default singleton — uses live mode with sample fallback (best of both worlds).
+// Default singleton — live mode with sample fallback.
 export const jiji = new JijiClient({ sampleMode: false });

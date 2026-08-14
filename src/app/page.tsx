@@ -27,14 +27,20 @@ import {
   AlertTriangle,
   ArrowDown,
   ArrowUp,
+  Clock,
   Crosshair,
   Gauge,
+  Pause,
   Phone,
+  Play,
+  Radio,
+  Server,
   ShieldAlert,
   ShieldCheck,
   ShoppingBag,
   TrendingDown,
   Users,
+  Wifi,
 } from "lucide-react";
 import {
   LineChart,
@@ -72,6 +78,7 @@ interface EnrichedListing {
     rating: number;
     hidePhone: boolean;
     phoneLeaked: boolean;
+    phone: string | null;
     verifiedBadge: boolean;
   };
   marketMedian: number;
@@ -108,6 +115,35 @@ interface StatsResponse {
     scamsFlagged: number;
     sourceMode: string;
   } | null;
+}
+
+interface SchedulerStatus {
+  enabled: boolean;
+  running: boolean;
+  intervalMs: number;
+  lastRunAt: string | null;
+  lastRunSummary: {
+    itemsCollected: number;
+    itemsUpdated: number;
+    fakeDiscounts: number;
+    scamsFlagged: number;
+    durationMs: number;
+  } | null;
+  nextRunAt: string | null;
+  totalRuns: number;
+}
+
+interface LiveApiStatus {
+  lastMode: "live" | "sample";
+  lastCheckedAt: string | null;
+  lastError: string | null;
+  liveSuccessCount: number;
+  sampleFallbackCount: number;
+}
+
+interface SystemStatus {
+  liveApi: LiveApiStatus;
+  proxyPool: { working: number; total: number };
 }
 
 interface HistoryResponse {
@@ -149,20 +185,38 @@ function timeAgo(date: string | null): string {
   }
 }
 
+function nextRunAtLabel(s: SchedulerStatus | null, inLabel: string | null): string {
+  if (!s) return "—";
+  if (s.running) return "running...";
+  if (!s.enabled) return "paused";
+  if (!s.nextRunAt) return "starting...";
+  return `next in ${inLabel ?? "?"}`;
+}
+
 export default function Home() {
   const [listings, setListings] = useState<EnrichedListing[]>([]);
   const [stats, setStats] = useState<StatsResponse | null>(null);
+  const [scheduler, setScheduler] = useState<SchedulerStatus | null>(null);
+  const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [collecting, setCollecting] = useState(false);
+  const [seedingProxies, setSeedingProxies] = useState(false);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryResponse | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [now, setNow] = useState(Date.now());
 
   // Filters
   const [q, setQ] = useState("");
   const [category, setCategory] = useState("all");
   const [classification, setClassification] = useState("all");
   const [sort, setSort] = useState("-deal");
+
+  // Tick "now" every 30s so the "next collection in X" countdown updates
+  useEffect(() => {
+    const i = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(i);
+  }, []);
 
   const fetchListings = useCallback(async () => {
     setLoading(true);
@@ -192,6 +246,89 @@ export default function Home() {
     }
   }, []);
 
+  const fetchScheduler = useCallback(async () => {
+    try {
+      const resp = await fetch("/api/scheduler");
+      const data = await resp.json();
+      setScheduler(data as SchedulerStatus);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const fetchSystemStatus = useCallback(async () => {
+    try {
+      const resp = await fetch("/api/status");
+      const data = await resp.json();
+      setSystemStatus(data as SystemStatus);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const toggleScheduler = useCallback(
+    async (action: "pause" | "resume" | "trigger") => {
+      try {
+        const resp = await fetch("/api/scheduler", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        });
+        const data = await resp.json();
+        if (data.ok) {
+          setScheduler(data.status as SchedulerStatus);
+          if (action === "trigger") {
+            toast.success("Manual collection triggered.");
+            await Promise.all([fetchListings(), fetchStats()]);
+          } else {
+            toast.success(`Scheduler ${action}d.`);
+          }
+        } else {
+          toast.error(data.error ?? `Scheduler ${action} failed`);
+        }
+      } catch {
+        toast.error(`Scheduler ${action} failed`);
+      }
+    },
+    [fetchListings, fetchStats]
+  );
+
+  const seedDefaultsAndValidate = useCallback(async () => {
+    setSeedingProxies(true);
+    try {
+      const seedResp = await fetch("/api/proxies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "seed_defaults" }),
+      });
+      const seedData = await seedResp.json();
+      if (!seedData.ok) {
+        toast.error(seedData.error ?? "Seed failed");
+        return;
+      }
+      toast.info(`Seeded ${seedData.added} default proxies. Validating...`);
+
+      const valResp = await fetch("/api/proxies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "validate" }),
+      });
+      const valData = await valResp.json();
+      if (valData.ok) {
+        toast.success(
+          `Validated ${valData.tested} proxies — ${valData.working} working against Jiji.`
+        );
+        await fetchSystemStatus();
+      } else {
+        toast.error(valData.error ?? "Validation failed");
+      }
+    } catch {
+      toast.error("Proxy operation failed");
+    } finally {
+      setSeedingProxies(false);
+    }
+  }, [fetchSystemStatus]);
+
   const runCollection = useCallback(async () => {
     setCollecting(true);
     try {
@@ -219,11 +356,20 @@ export default function Home() {
   // Initial load — and auto-collect if DB is empty
   useEffect(() => {
     (async () => {
-      const statsResp = await fetch("/api/stats");
-      const statsData: StatsResponse = await statsResp.json();
-      setStats(statsData);
-      if (statsData.total === 0 && !collecting) {
-        // DB is empty — kick off the first collection automatically
+      const [statsResp, schedResp, statusResp] = await Promise.all([
+        fetch("/api/stats"),
+        fetch("/api/scheduler"),
+        fetch("/api/status"),
+      ]);
+      const [statsData, schedData, statusData] = await Promise.all([
+        statsResp.json(),
+        schedResp.json(),
+        statusResp.json(),
+      ]);
+      setStats(statsData as StatsResponse);
+      setScheduler(schedData as SchedulerStatus);
+      setSystemStatus(statusData as SystemStatus);
+      if ((statsData as StatsResponse).total === 0 && !collecting) {
         setCollecting(true);
         try {
           const resp = await fetch("/api/collect", {
@@ -257,11 +403,15 @@ export default function Home() {
     return () => clearTimeout(t);
   }, [q, category, classification, sort, fetchListings]);
 
-  // Auto-refresh stats every 60s
+  // Auto-refresh stats + scheduler + status every 60s
   useEffect(() => {
-    const i = setInterval(() => fetchStats(), 60000);
+    const i = setInterval(() => {
+      fetchStats();
+      fetchScheduler();
+      fetchSystemStatus();
+    }, 60000);
     return () => clearInterval(i);
-  }, [fetchStats]);
+  }, [fetchStats, fetchScheduler, fetchSystemStatus]);
 
   const toggleExpand = useCallback(
     async (listingId: string) => {
@@ -318,6 +468,16 @@ export default function Home() {
     ];
   }, [stats]);
 
+  const nextRunIn = useMemo(() => {
+    if (!scheduler?.nextRunAt) return null;
+    const ms = new Date(scheduler.nextRunAt).getTime() - now;
+    if (ms <= 0) return "due";
+    const mins = Math.floor(ms / 60000);
+    const secs = Math.floor((ms % 60000) / 1000);
+    if (mins > 0) return `${mins}m ${secs}s`;
+    return `${secs}s`;
+  }, [scheduler, now]);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -334,17 +494,82 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <Badge variant="outline" className="gap-1.5 font-normal">
-              <Activity className="size-3" />
-              Last run: {timeAgo(stats?.lastRun?.finishedAt ?? null)}
-            </Badge>
-            {stats?.lastRun?.sourceMode && (
-              <Badge variant="outline" className="font-normal">
-                Source: {stats.lastRun.sourceMode}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Live API status */}
+            {systemStatus?.liveApi && (
+              <Badge
+                variant="outline"
+                className={`gap-1.5 font-normal ${
+                  systemStatus.liveApi.lastMode === "live"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-amber-50 text-amber-700 border-amber-200"
+                }`}
+                title={
+                  systemStatus.liveApi.lastError
+                    ? `Last error: ${systemStatus.liveApi.lastError}`
+                    : "Live API status"
+                }
+              >
+                {systemStatus.liveApi.lastMode === "live" ? (
+                  <Radio className="size-3" />
+                ) : (
+                  <AlertTriangle className="size-3" />
+                )}
+                {systemStatus.liveApi.lastMode === "live" ? "LIVE API" : "SAMPLE"}
               </Badge>
             )}
+            {/* Scheduler status */}
+            {scheduler && (
+              <Badge variant="outline" className="gap-1.5 font-normal">
+                <Clock className="size-3" />
+                {scheduler.enabled
+                  ? nextRunAtLabel(scheduler, nextRunIn)
+                  : "Paused"}
+              </Badge>
+            )}
+            {/* Proxy pool status */}
+            {systemStatus?.proxyPool && (
+              <Badge
+                variant="outline"
+                className={`gap-1.5 font-normal ${
+                  systemStatus.proxyPool.working > 0
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-muted"
+                }`}
+                title="Working / Total proxies in pool"
+              >
+                <Server className="size-3" />
+                {systemStatus.proxyPool.working}/{systemStatus.proxyPool.total} proxies
+              </Badge>
+            )}
+            {/* Pause/resume + trigger */}
+            {scheduler && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => toggleScheduler(scheduler.enabled ? "pause" : "resume")}
+                title={scheduler.enabled ? "Pause auto-collection" : "Resume auto-collection"}
+              >
+                {scheduler.enabled ? (
+                  <Pause className="size-3.5" />
+                ) : (
+                  <Play className="size-3.5" />
+                )}
+                {scheduler.enabled ? "Pause" : "Resume"}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={seedDefaultsAndValidate}
+              disabled={seedingProxies}
+              title="Seed default proxies and validate against Jiji"
+            >
+              <Wifi className="size-3.5" />
+              {seedingProxies ? "Working..." : "Seed Proxies"}
+            </Button>
             <Button onClick={runCollection} disabled={collecting} size="sm">
+              <Activity className="size-3.5" />
               {collecting ? "Collecting..." : "Run Collection Now"}
             </Button>
           </div>
@@ -444,11 +669,12 @@ export default function Home() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[28%]">Item</TableHead>
+                <TableHead className="w-[26%]">Item</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Market Median</TableHead>
                 <TableHead>Deal Score</TableHead>
                 <TableHead>Seller</TableHead>
+                <TableHead>Contact</TableHead>
                 <TableHead>Risk</TableHead>
                 <TableHead className="w-12" />
               </TableRow>
@@ -457,14 +683,14 @@ export default function Home() {
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={8}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : listings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
                     No listings found. Try adjusting filters or run a new collection.
                   </TableCell>
                 </TableRow>
@@ -549,6 +775,27 @@ export default function Home() {
                         </div>
                       </TableCell>
                       <TableCell>
+                        {l.seller.phone ? (
+                          <div className="flex flex-col gap-0.5">
+                            <a
+                              href={`tel:${l.seller.phone.replace(/\s/g, "")}`}
+                              className="font-mono text-xs hover:underline inline-flex items-center gap-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Phone className="size-3" />
+                              {l.seller.phone}
+                            </a>
+                            {l.seller.phoneLeaked && (
+                              <span className="text-[10px] text-red-600">
+                                (hidden on page)
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">No phone</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {l.score ? (
                           <div className="space-y-0.5">
                             {l.score.hasFakeDiscount && (
@@ -581,7 +828,7 @@ export default function Home() {
                     </TableRow>
                     {expandedRow === l.id && (
                       <TableRow key={`${l.id}-expanded`} className="bg-muted/30">
-                        <TableCell colSpan={7} className="p-4">
+                        <TableCell colSpan={8} className="p-4">
                           <ExpandedRow
                             loading={historyLoading}
                             history={history}
@@ -708,6 +955,28 @@ function ExpandedRow({
             </div>
           ))}
         </div>
+
+        {/* Seller contact — public phone number, surfaced for buyer action */}
+        <div className="mt-3 pt-3 border-t">
+          <div className="text-xs text-muted-foreground mb-1">Seller Contact</div>
+          {listing.seller.phone ? (
+            <a
+              href={`tel:${listing.seller.phone.replace(/\s/g, "")}`}
+              className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border bg-emerald-50 border-emerald-200 text-emerald-800 text-xs font-mono hover:bg-emerald-100"
+            >
+              <Phone className="size-3.5" />
+              Call {listing.seller.phone}
+            </a>
+          ) : (
+            <span className="text-xs text-muted-foreground">No phone published</span>
+          )}
+          {listing.seller.phoneLeaked && (
+            <div className="text-[10px] text-red-600 mt-1">
+              ⚠ Seller hid phone on listing page but API exposed it anyway.
+            </div>
+          )}
+        </div>
+
         {listing.url && (
           <a
             href={listing.url}

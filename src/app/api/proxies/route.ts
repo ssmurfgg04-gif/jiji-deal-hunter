@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { validateProxies, seedProxyPool } from "@/lib/proxy-pool";
+import {
+  validateProxies,
+  seedProxyPool,
+  seedDefaultProxies,
+} from "@/lib/proxy-pool";
 
 /**
  * GET /api/proxies — list all proxies in pool with their last test result.
@@ -15,28 +19,47 @@ export async function GET() {
 
 /**
  * POST /api/proxies
- * Body: { urls?: string[], action: "validate" | "seed" }
+ * Body: { action: "seed_defaults" | "seed" | "validate", urls?: string[] }
  *
- *   action=seed     — add URLs to the pool (no validation)
- *   action=validate — re-run validation on the entire pool
+ *   action=seed_defaults — populate pool with built-in starter list
+ *   action=seed          — add operator-supplied URLs (no validation)
+ *   action=validate      — re-run validation on the pool (or supplied URLs)
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
     const action = body?.action ?? "validate";
 
+    if (action === "seed_defaults") {
+      const added = await seedDefaultProxies();
+      return NextResponse.json({
+        ok: true,
+        added,
+        message: `${added} default proxies seeded. Call {action:"validate"} next.`,
+      });
+    }
+
     if (action === "seed") {
       const urls: string[] = body?.urls ?? [];
+      if (urls.length === 0) {
+        return NextResponse.json(
+          { ok: false, error: "no urls supplied. Use action:'seed_defaults' for built-in list." },
+          { status: 400 }
+        );
+      }
       const added = await seedProxyPool(urls);
       return NextResponse.json({ ok: true, added });
     }
 
-    // Validate existing pool
+    // action === "validate"
     const all = await db.proxyPool.findMany({ select: { url: true } });
     const urls = body?.urls ?? all.map((p) => p.url);
     if (urls.length === 0) {
       return NextResponse.json(
-        { ok: false, error: "pool is empty. POST {action:'seed', urls:[...]} first." },
+        {
+          ok: false,
+          error: "pool is empty. POST {action:'seed_defaults'} first.",
+        },
         { status: 400 }
       );
     }

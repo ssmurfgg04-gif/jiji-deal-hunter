@@ -119,6 +119,47 @@ export async function pickProxy(): Promise<string | null> {
 }
 
 /**
+ * Default starter proxy list.
+ *
+ * These are public/free proxies that the operator can seed the pool with
+ * on first run. Most will fail validation — that's expected. The point of
+ * seeding is to give the validator something to test against; the surviving
+ * subset becomes the working pool.
+ *
+ * Format: protocol://[user:pass@]host:port
+ *
+ * To replace with paid proxies: POST /api/proxies { action: "seed", urls: [...] }
+ * with your own list, then POST { action: "validate" }.
+ */
+export const DEFAULT_PROXY_SEED_LIST: string[] = [
+  // HTTP proxies
+  "http://185.199.229.156:7492",
+  "http://157.245.222.183:3128",
+  "http://51.159.115.74:3128",
+  "http://188.166.83.18:8080",
+  "http://146.190.55.231:8080",
+  "http://185.199.229.156:7156",
+  "http://51.79.50.31:3128",
+  "http://161.35.70.247:3128",
+  "http://173.212.193.249:3128",
+  "http://47.252.4.142:8080",
+  // HTTPS proxies (will be tested via CONNECT)
+  "https://185.199.229.156:7492",
+  "https://51.159.115.74:3128",
+  "https://146.190.55.231:8080",
+  "https://188.166.83.18:8080",
+  "https://51.79.50.31:3128",
+];
+
+/**
+ * Seed the proxy pool with the default starter list (idempotent).
+ * Returns the count of newly-added proxies.
+ */
+export async function seedDefaultProxies(): Promise<number> {
+  return seedProxyPool(DEFAULT_PROXY_SEED_LIST);
+}
+
+/**
  * Seed the proxy pool with a starter list (operator-provided URLs).
  * Idempotent — existing proxies are skipped.
  */

@@ -78,6 +78,7 @@ export async function GET(req: Request) {
       rating: l.seller.rating,
       hidePhone: l.seller.hidePhone,
       phoneLeaked: l.seller.phoneLeaked,
+      phone: l.seller.phone,
       verifiedBadge: l.seller.verifiedBadge,
     },
     marketMedian: medians[l.category],
