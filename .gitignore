@@ -74,3 +74,4 @@ venv/
 
 # Runtime artifacts
 download/
+tool-results/
