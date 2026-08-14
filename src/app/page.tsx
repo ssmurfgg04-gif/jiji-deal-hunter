@@ -21,6 +21,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { toast } from "sonner";
 import {
   Activity,
@@ -288,6 +296,17 @@ export default function Home() {
   const [sort, setSort] = useState("-deal");
   const [filterMode, setFilterMode] = useState<"abuse" | "ghost" | "broker" | null>(null);
   const [buyerLoc, setBuyerLoc] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>("deals");
+  const [scamRings, setScamRings] = useState<any[]>([]);
+  const [scamRingsLoading, setScamRingsLoading] = useState(false);
+  const [temporalItems, setTemporalItems] = useState<any[]>([]);
+  const [temporalLoading, setTemporalLoading] = useState(false);
+  const [sellerSheet, setSellerSheet] = useState<{ open: boolean; sellerId: string | null }>({
+    open: false,
+    sellerId: null,
+  });
+  const [sellerProfile, setSellerProfile] = useState<any | null>(null);
+  const [sellerLoading, setSellerLoading] = useState(false);
 
   // Tick "now" every 30s
   useEffect(() => {
@@ -436,6 +455,61 @@ export default function Home() {
       setCollecting(false);
     }
   }, [fetchListings, fetchStats, fetchSystemStatus, marketFilter]);
+
+  const fetchScamRings = useCallback(async () => {
+    setScamRingsLoading(true);
+    try {
+      const resp = await fetch("/api/scam-rings?minSellers=2&limit=50&detail=1");
+      const data = await resp.json();
+      setScamRings(data.scamRings ?? []);
+    } catch {
+      toast.error("Failed to load scam rings");
+    } finally {
+      setScamRingsLoading(false);
+    }
+  }, []);
+
+  const fetchTemporal = useCallback(async () => {
+    setTemporalLoading(true);
+    try {
+      const resp = await fetch("/api/temporal?limit=50");
+      const data = await resp.json();
+      setTemporalItems(data.items ?? []);
+    } catch {
+      toast.error("Failed to load temporal data");
+    } finally {
+      setTemporalLoading(false);
+    }
+  }, []);
+
+  const openSellerProfile = useCallback(async (sellerId: string) => {
+    setSellerSheet({ open: true, sellerId });
+    setSellerLoading(true);
+    setSellerProfile(null);
+    try {
+      const resp = await fetch(`/api/seller-profile?id=${sellerId}`);
+      const data = await resp.json();
+      if (data.ok) {
+        setSellerProfile(data);
+      } else {
+        toast.error(data.error ?? "Seller not found");
+      }
+    } catch {
+      toast.error("Failed to load seller profile");
+    } finally {
+      setSellerLoading(false);
+    }
+  }, []);
+
+  // Fetch scam rings / temporal when tab changes
+  useEffect(() => {
+    if (activeTab === "scam-rings" && scamRings.length === 0) {
+      fetchScamRings();
+    }
+    if (activeTab === "temporal" && temporalItems.length === 0) {
+      fetchTemporal();
+    }
+  }, [activeTab, scamRings.length, temporalItems.length, fetchScamRings, fetchTemporal]);
 
   const runLiveSearch = useCallback(async () => {
     if (!searchQ.trim()) {
@@ -829,7 +903,22 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Main Table */}
+        {/* Tab navigation: Deals / Scam Rings / Temporal */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 max-w-md">
+            <TabsTrigger value="deals">Deals</TabsTrigger>
+            <TabsTrigger value="scam-rings">
+              <AlertTriangle className="size-3.5 mr-1" />
+              Scam Rings
+            </TabsTrigger>
+            <TabsTrigger value="temporal">
+              <Clock className="size-3.5 mr-1" />
+              Temporal
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="deals" className="mt-4">
+            {/* Main Table */}
         <section className="rounded-xl border bg-card overflow-hidden">
           <Table>
             <TableHeader>
@@ -931,7 +1020,15 @@ export default function Home() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
-                          <span className="font-medium text-sm">{l.seller.username}</span>
+                          <button
+                            className="font-medium text-sm hover:underline cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openSellerProfile(l.seller.id);
+                            }}
+                          >
+                            {l.seller.username}
+                          </button>
                           {l.seller.verifiedBadge && <ShieldCheck className="size-3 text-emerald-600" />}
                           {l.seller.isDealer && <Building2 className="size-3 text-orange-600" />}
                         </div>
@@ -1064,6 +1161,18 @@ export default function Home() {
             </TableBody>
           </Table>
         </section>
+          </TabsContent>
+
+          {/* Scam Rings tab */}
+          <TabsContent value="scam-rings" className="mt-4">
+            <ScamRingsView loading={scamRingsLoading} rings={scamRings} />
+          </TabsContent>
+
+          {/* Temporal tab */}
+          <TabsContent value="temporal" className="mt-4">
+            <TemporalView loading={temporalLoading} items={temporalItems} />
+          </TabsContent>
+        </Tabs>
       </main>
 
       <footer className="border-t bg-card mt-auto">
@@ -1081,6 +1190,25 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Seller profile sheet */}
+      <Sheet
+        open={sellerSheet.open}
+        onOpenChange={(open) => setSellerSheet({ open, sellerId: sellerSheet.sellerId })}
+      >
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>
+              {sellerLoading ? "Loading seller..." : sellerProfile?.seller?.username ?? "Seller Profile"}
+            </SheetTitle>
+          </SheetHeader>
+          <SellerProfileView
+            loading={sellerLoading}
+            profile={sellerProfile}
+            onListingClick={() => setSellerSheet({ open: false, sellerId: null })}
+          />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -1196,4 +1324,402 @@ function parseFactors(l: EnrichedListing): { label: string; value: string; dange
     factors.push({ label: "Real Discount", value: pct(l.score.realDiscount) });
   }
   return factors;
+}
+
+// ---------------------------------------------------------------------------
+// ScamRingsView — shows image hash duplicates (stolen photos / scam rings)
+// ---------------------------------------------------------------------------
+
+function ScamRingsView({ loading, rings }: { loading: boolean; rings: any[] }) {
+  if (loading) {
+    return (
+      <div className="rounded-xl border bg-card p-6 space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-20 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (rings.length === 0) {
+    return (
+      <div className="rounded-xl border bg-card p-12 text-center">
+        <ShieldCheck className="size-12 mx-auto text-emerald-600 mb-3" />
+        <h3 className="text-lg font-medium mb-1">No scam rings detected</h3>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          No image hashes were found shared across multiple sellers. This means
+          no stolen photos or cross-seller scam patterns were detected in the
+          current dataset.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border bg-card overflow-hidden">
+      <div className="p-4 border-b bg-muted/30">
+        <h3 className="font-medium flex items-center gap-2">
+          <AlertTriangle className="size-4 text-orange-600" />
+          Image Hash Duplicates ({rings.length})
+        </h3>
+        <p className="text-xs text-muted-foreground mt-1">
+          Listings sharing the same image content hash across different sellers —
+          a strong signal of stolen photos or coordinated scam rings.
+        </p>
+      </div>
+      <div className="divide-y max-h-[600px] overflow-y-auto">
+        {rings.map((ring) => {
+          const report = ring.report;
+          return (
+            <div key={ring.hash} className="p-4 hover:bg-muted/30">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div>
+                  <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
+                    {ring.hash}
+                  </code>
+                  <Badge variant="outline" className="ml-2 text-[10px]">
+                    {ring.hashType}
+                  </Badge>
+                </div>
+                <div className="flex gap-2">
+                  <Badge variant="outline" className="text-[10px] bg-red-50 text-red-700 border-red-200">
+                    {ring.sellerCount} sellers
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px] bg-orange-50 text-orange-700 border-orange-200">
+                    {ring.listingCount} listings
+                  </Badge>
+                  {ring.marketCount > 1 && (
+                    <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-200">
+                      {ring.marketCount} markets
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              {report && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">
+                  <div>
+                    <div className="text-[10px] text-muted-foreground mb-1">Sellers</div>
+                    {report.sellers.map((s: any) => (
+                      <div key={s.sellerId} className="text-xs font-mono">
+                        {s.username} ({s.marketId})
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-muted-foreground mb-1">Listings</div>
+                    {report.listings.slice(0, 5).map((l: any) => (
+                      <div key={l.listingId} className="text-xs truncate">
+                        {l.title} ({l.marketId})
+                      </div>
+                    ))}
+                    {report.listings.length > 5 && (
+                      <div className="text-[10px] text-muted-foreground">
+                        +{report.listings.length - 5} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TemporalView — shows items with multiple captures (price time series)
+// ---------------------------------------------------------------------------
+
+function TemporalView({ loading, items }: { loading: boolean; items: any[] }) {
+  if (loading) {
+    return (
+      <div className="rounded-xl border bg-card p-6 space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-16 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="rounded-xl border bg-card p-12 text-center">
+        <Clock className="size-12 mx-auto text-muted-foreground mb-3" />
+        <h3 className="text-lg font-medium mb-1">No temporal data yet</h3>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          Temporal data requires multiple Wayback captures of the same listing
+          at different points in time. Run the HTML harvester to mine category-page
+          captures from web.archive.org.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border bg-card overflow-hidden">
+      <div className="p-4 border-b bg-muted/30">
+        <h3 className="font-medium flex items-center gap-2">
+          <Clock className="size-4 text-blue-600" />
+          Temporal Price History ({items.length})
+        </h3>
+        <p className="text-xs text-muted-foreground mt-1">
+          Items with multiple Wayback captures — showing price changes over time.
+          These enable the non-leaking "motivated seller" target.
+        </p>
+      </div>
+      <div className="divide-y max-h-[600px] overflow-y-auto">
+        {items.map((item) => (
+          <div key={item.id} className="p-4 hover:bg-muted/30">
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[10px]">{item.marketId.toUpperCase()}</Badge>
+                  <code className="text-xs font-mono">{item.itemId}</code>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {item.captureCount} captures · {item.daysListed} days listed
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap justify-end">
+                {item.motivatedSeller && (
+                  <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200">
+                    Motivated
+                  </Badge>
+                )}
+                {item.staleListing && (
+                  <Badge variant="outline" className="text-[10px] bg-orange-50 text-orange-700 border-orange-200">
+                    Stale
+                  </Badge>
+                )}
+                {item.flipOpportunity && (
+                  <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+                    Flip
+                  </Badge>
+                )}
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] ${
+                    item.priceDeltaPct < 0
+                      ? "bg-red-50 text-red-700 border-red-200"
+                      : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  }`}
+                >
+                  {item.priceDeltaPct < 0 ? "↓" : "↑"} {Math.abs(item.priceDeltaPct * 100).toFixed(1)}%
+                </Badge>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span>
+                First: <span className="font-mono">{item.firstPrice?.toLocaleString()}</span>
+              </span>
+              <span>
+                Last: <span className="font-mono">{item.lastPrice?.toLocaleString()}</span>
+              </span>
+              <span>
+                First seen: {new Date(item.firstSeenAt).toLocaleDateString()}
+              </span>
+              <span>
+                Last seen: {new Date(item.lastSeenAt).toLocaleDateString()}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// SellerProfileView — shown in the Sheet when a seller name is clicked
+// ---------------------------------------------------------------------------
+
+function SellerProfileView({
+  loading,
+  profile,
+  onListingClick,
+}: {
+  loading: boolean;
+  profile: any;
+  onListingClick: () => void;
+}) {
+  if (loading) {
+    return (
+      <div className="p-4 space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-16 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="p-4 text-sm text-muted-foreground">
+        Seller not found.
+      </div>
+    );
+  }
+
+  const { seller, listings, imageHashStats } = profile;
+
+  return (
+    <div className="p-4 space-y-4">
+      {/* Seller header */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h3 className="text-lg font-semibold">{seller.username}</h3>
+          {seller.verifiedBadge && (
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+              <ShieldCheck className="size-3 mr-1" /> Verified
+            </Badge>
+          )}
+          {seller.isDealer && (
+            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+              <Building2 className="size-3 mr-1" /> Dealer
+            </Badge>
+          )}
+          <Badge variant="outline" className="text-[10px]">{seller.marketId.toUpperCase()}</Badge>
+        </div>
+
+        {/* Seller stats grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
+          <div className="rounded-lg border p-2.5">
+            <div className="text-[10px] text-muted-foreground">Listings</div>
+            <div className="text-lg font-semibold">{seller.totalListings}</div>
+          </div>
+          <div className="rounded-lg border p-2.5">
+            <div className="text-[10px] text-muted-foreground">Adverts/FB</div>
+            <div className="text-lg font-semibold">
+              {seller.advertsCount}/{Math.max(seller.feedbackCount, 1)}
+            </div>
+          </div>
+          <div className="rounded-lg border p-2.5">
+            <div className="text-[10px] text-muted-foreground">Dealer Ratio</div>
+            <div className="text-lg font-semibold">
+              {seller.dealerRatio.toFixed(1)}
+            </div>
+          </div>
+          <div className="rounded-lg border p-2.5">
+            <div className="text-[10px] text-muted-foreground">Rating</div>
+            <div className="text-lg font-semibold">{seller.rating.toFixed(1)}★</div>
+          </div>
+        </div>
+
+        {/* Contact */}
+        {seller.phone && (
+          <div className="mt-3">
+            <a
+              href={`tel:${seller.phone.replace(/\s/g, "")}`}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border bg-emerald-50 border-emerald-200 text-emerald-800 text-sm font-mono hover:bg-emerald-100"
+            >
+              <Phone className="size-4" />
+              Call {seller.phone}
+            </a>
+            {seller.phoneLeaked && (
+              <div className="text-[10px] text-red-600 mt-1">
+                ⚠ Phone hidden on listing page but API exposed it
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Image hash stats */}
+        {imageHashStats.sharedWithOtherSellers > 0 && (
+          <div className="mt-3 p-3 rounded-lg border bg-red-50 border-red-200">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="size-4 text-red-600" />
+              <span className="text-sm font-medium text-red-800">
+                {imageHashStats.sharedWithOtherSellers} image hashes shared with other sellers
+              </span>
+            </div>
+            <div className="text-xs text-red-700 mt-1">
+              This seller's photos appear under different seller accounts —
+              potential stolen photos or scam ring.
+            </div>
+            {imageHashStats.sharedHashDetails.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {imageHashStats.sharedHashDetails.map((d: any) => (
+                  <div key={d.hash} className="text-xs font-mono text-red-600">
+                    {d.hash} → shared with {d.sharedWith} other seller(s)
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Listings by this seller */}
+      <div>
+        <h4 className="text-sm font-medium mb-2">
+          Listings by {seller.username} ({listings.length})
+        </h4>
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+          {listings.map((l: any) => (
+            <button
+              key={l.id}
+              onClick={onListingClick}
+              className="w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium truncate">{l.title}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {l.category} · {l.condition}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-sm font-semibold">
+                    {l.price.toLocaleString()} {l.currency}
+                  </div>
+                  {l.dealScore && (
+                    <div className="flex items-center gap-1 justify-end">
+                      <span className="text-xs font-mono">{l.dealScore.score.toFixed(0)}</span>
+                      <Badge
+                        variant="outline"
+                        className={`text-[9px] py-0 ${
+                          l.dealScore.classification === "GREAT"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : l.dealScore.classification === "FAIR"
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              : l.dealScore.classification === "RISKY"
+                                ? "bg-orange-50 text-orange-700 border-orange-200"
+                                : "bg-red-50 text-red-700 border-red-200"
+                        }`}
+                      >
+                        {l.dealScore.classification}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground">
+                <span>{l.views} views</span>
+                <span>·</span>
+                <span>{l.daysOnMarket}d on market</span>
+                {l.isBoost && (
+                  <>
+                    <span>·</span>
+                    <Badge variant="outline" className="text-[9px] py-0 bg-purple-50 text-purple-700 border-purple-200">
+                      Boosted
+                    </Badge>
+                  </>
+                )}
+                {l.abuseReported && (
+                  <>
+                    <span>·</span>
+                    <Badge variant="outline" className="text-[9px] py-0 bg-red-50 text-red-700 border-red-200">
+                      Abuse flagged
+                    </Badge>
+                  </>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -107,17 +107,37 @@ export function scoreDeal(f: DealFeatures): DealScoreResult {
   const cappedPriceSignal = clamp(priceVsMedian * 4);
 
   // ---- Seller risk ----
-  const ageDays = f.sellerAccountAgeDays;
-  const ageSignal = ageDays < 14 ? -1.2 : ageDays < 60 ? -0.3 : ageDays > 365 ? 0.4 : 0;
+  // If sellerAccountAgeDays is 0 but we have dateCreated, infer age from the
+  // listing's creation date (better than penalizing everything as "new").
+  // This handles archived data where seller account age wasn't captured.
+  let ageDays = f.sellerAccountAgeDays;
+  if (ageDays === 0 && f.dateCreated) {
+    const created = new Date(f.dateCreated).getTime();
+    if (!isNaN(created)) {
+      ageDays = Math.max(0, Math.floor((Date.now() - created) / 86400000));
+    }
+  }
+  const ageSignal = ageDays === 0 ? -0.6 : ageDays < 14 ? -1.2 : ageDays < 60 ? -0.3 : ageDays > 365 ? 0.4 : 0;
   const listingSignal =
     f.sellerListingCount < 3 ? -0.8 : f.sellerListingCount < 10 ? -0.2 : 0.4;
   const verifiedSignal = f.hasVerifiedBadge ? 0.4 : 0;
 
-  // ---- Dealer ratio (recon signal) ----
-  // adverts_count / feedback_count > 50 = dealer posing as individual
+  // ---- Dealer ratio (recon signal) — U-shaped trust curve per audit ----
+  // Audit finding: "Very low (new seller) and very high (possible mass-lister)
+  // both riskier than mid-range." So we penalize BOTH ends.
+  // - dealerRatio > 50: mass-lister / broker posing as individual → strong penalty
+  // - dealerRatio > 20: leaning dealer → moderate penalty
+  // - dealerRatio 5-20: established individual seller → slight positive (trust curve peak)
+  // - dealerRatio 1-5: new seller with few listings → slight penalty (unproven)
+  // - dealerRatio 0 or seller has 0 adverts: brand new / data-missing → penalty
   const denom = Math.max(f.feedbackCount, 1);
   const dealerRatio = f.advertsCount / denom;
-  const dealerSignal = dealerRatio > 50 ? -1.0 : dealerRatio > 20 ? -0.4 : 0;
+  let dealerSignal: number;
+  if (dealerRatio > 50) dealerSignal = -1.0;
+  else if (dealerRatio > 20) dealerSignal = -0.4;
+  else if (dealerRatio >= 5) dealerSignal = 0.2; // sweet spot: established individual
+  else if (dealerRatio >= 1) dealerSignal = -0.1; // new but has some activity
+  else dealerSignal = -0.3; // no adverts at all — brand new or data missing
 
   const sellerRisk = Math.max(
     0,
@@ -175,14 +195,25 @@ export function scoreDeal(f: DealFeatures): DealScoreResult {
 
   // ---- Boost / paid promotion (recon: commercial intent) ----
   const isBoosted = f.isBoost || f.availableTopsCount > 0;
-  const boostSignal = isBoosted ? -0.3 : 0;
+  // AUDIT FINDING: is_boost was the #1 feature (8.4 gain) in the v3 temporal model.
+  // "Boosted listings that go stale are overpriced" — a boosted listing sitting
+  // for >14 days is paying for promotion on something that isn't selling.
+  // Penalty scales with days on market: fresh boosted listing is fine (commercial
+  // seller promoting new inventory), stale boosted listing is a red flag.
+  const boostStale = isBoosted && f.daysOnMarket > 14;
+  const boostSignal = boostStale ? -0.8 : isBoosted ? -0.3 : 0;
 
   // ---- Image duplicate signals (recon) ----
-  // cross-seller (stolen photo) is the strongest signal
-  const crossSellerSignal = f.crossSellerCount > 1 ? -1.2 : 0;
+  // cross-seller (stolen photo) is the strongest signal — weighted heavier now
+  // per audit: image_hash_dup is a rare, high-confidence risk signal
+  const crossSellerSignal = f.crossSellerCount > 1 ? -1.8 : 0;
   const relistSignal = f.relistCount > 0 ? -0.4 : 0; // relist is weaker — could be legitimate
   const crossMarketBroker = f.crossMarketCount > 1;
   const crossMarketSignal = crossMarketBroker ? -0.8 : 0;
+  // Image duplicate count contributes a graduated penalty (not just boolean)
+  const imageDupSignal = f.imageDuplicateCount > 0
+    ? -Math.min(1.0, f.imageDuplicateCount * 0.2)
+    : 0;
 
   // ---- Price valuation signal (recon: Jiji's own market band) ----
   // Jiji computes a low/high market band. If price is below the low band, that's
@@ -208,9 +239,10 @@ export function scoreDeal(f: DealFeatures): DealScoreResult {
     ghostSignal * 0.7 +
     abuseSignal * 1.3 +
     boostSignal * 0.4 +
-    crossSellerSignal * 1.1 +
+    crossSellerSignal * 1.3 +
     relistSignal * 0.5 +
     crossMarketSignal * 0.7 +
+    imageDupSignal * 0.6 +
     valuationSignal * 0.8;
 
   const score = sigmoid(raw);
