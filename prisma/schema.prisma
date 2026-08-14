@@ -1,0 +1,106 @@
+// Prisma schema for Jiji Deal Hunter
+// Sellers, Listings, PriceHistory, DealScores, CollectionRuns, ProxyPool
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Seller {
+  id              String   @id
+  username        String
+  location        String?
+  accountAgeDays  Int      @default(0)
+  totalListings   Int      @default(0)
+  rating          Float    @default(0)
+  hidePhone       Boolean  @default(false)
+  phoneLeaked     Boolean  @default(false)
+  phone           String?
+  verifiedBadge   Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  listings        Listing[]
+}
+
+model Listing {
+  id              String   @id
+  title           String
+  price           Int
+  currency        String   @default("KES")
+  category        String
+  condition       String   @default("new")
+  location        String?
+  imageUrl        String?
+  imageCount      Int      @default(0)
+  views           Int      @default(0)
+  daysOnMarket    Int      @default(0)
+  url             String?
+  sellerId        String
+  seller          Seller   @relation(fields: [sellerId], references: [id])
+  collectedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  priceHistory    PriceHistory[]
+  dealScore       DealScore?
+
+  @@index([category])
+  @@index([sellerId])
+}
+
+model PriceHistory {
+  id          String   @id @default(cuid())
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  price       Int
+  recordedAt  DateTime @default(now())
+
+  @@index([listingId])
+}
+
+model DealScore {
+  id                String   @id @default(cuid())
+  listingId         String   @unique
+  listing           Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  score             Float
+  classification    String   // GREAT | FAIR | RISKY | SCAM
+  priceVsMedian     Float
+  sellerRisk        Float
+  popularityRisk    Float
+  priceManipulation Float    @default(0)
+  hasPhoneLeak      Boolean  @default(false)
+  hasFakeDiscount   Boolean  @default(false)
+  claimedDiscount   Float?
+  realDiscount      Float?
+  factors           String   // JSON
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model CollectionRun {
+  id              String   @id @default(cuid())
+  startedAt       DateTime @default(now())
+  finishedAt      DateTime?
+  sourceMode      String   @default("api") // api | browser
+  itemsCollected  Int      @default(0)
+  itemsUpdated    Int      @default(0)
+  fakeDiscounts   Int      @default(0)
+  scamsFlagged    Int      @default(0)
+  status          String   @default("running") // running | completed | failed
+  log             String   @default("")
+}
+
+model ProxyPool {
+  id           String   @id @default(cuid())
+  url          String   @unique
+  isWorking    Boolean  @default(false)
+  latencyMs    Int      @default(0)
+  lastTestedAt DateTime?
+  failCount    Int      @default(0)
+  createdAt    DateTime @default(now())
+}
