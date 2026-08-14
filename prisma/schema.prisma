@@ -244,3 +244,74 @@ model CacheEntry {
 
   @@index([expiresAt])
 }
+
+// ---------------------------------------------------------------------------
+// Temporal pipeline tables
+// ---------------------------------------------------------------------------
+
+/**
+ * Raw HTML card extracts from Wayback category-page captures.
+ * Each row = one (item_id, price, timestamp) tuple extracted from a
+ * category-page HTML snapshot in the Wayback Machine.
+ *
+ * These are the temporal price signals — multiple captures of the same
+ * item at different points in time let us compute price_delta, days_listed, etc.
+ */
+model WaybackHtmlExtract {
+  id              String   @id @default(cuid())
+  marketId        String   // "ke" | "ng" | "tz" | ...
+  itemId          String   // Jiji's advert GUID (extracted from card link href)
+  price           BigInt   // parsed from card text (KSh/NGN/TSh stripped)
+  currency        String   @default("KES")
+  categorySlug    String?  // category page slug this was found on
+  captureTimestamp DateTime // Wayback capture timestamp (when the page was archived)
+  captureUrl      String?  // full Wayback URL for provenance
+  pageTitle       String?  // title text from the card (for entity-resolution sanity check)
+  createdAt       DateTime @default(now())
+
+  @@unique([marketId, itemId, captureTimestamp])
+  @@index([marketId, itemId])
+  @@index([marketId, captureTimestamp])
+  @@index([itemId])
+}
+
+/**
+ * Canonical items after entity resolution.
+ * Collapses multiple WaybackHtmlExtract rows (same itemId, different timestamps)
+ * into a single record with a computed price time series.
+ *
+ * This is the temporal feature layer — enables the non-leaking
+ * "motivated seller" target: price dropped >20% AND stayed listed >14d.
+ */
+model CanonicalItem {
+  id              String   @id // `${marketId}-${itemId}`
+  marketId        String
+  itemId          String   // Jiji advert GUID
+  firstSeenAt     DateTime
+  lastSeenAt      DateTime
+  captureCount    Int      @default(0)
+  daysListed      Int      @default(0) // lastSeenAt - firstSeenAt in days
+
+  // Price time series (JSON array of {t, price} sorted ascending)
+  priceHistory    String   @default("[]")
+  firstPrice      BigInt?
+  lastPrice       BigInt?
+  priceDeltaPct   Float    @default(0) // (lastPrice - firstPrice) / firstPrice
+  priceVolatility Float    @default(0) // stddev of price history (normalized)
+  priceDropRate   Float    @default(0) // priceDeltaPct / daysListed (per-day)
+
+  // Temporal target (non-leaking): computed from the time series, not from
+  // any single snapshot feature. A model trained on last-snapshot features
+  // cannot reconstruct this without the historical captures.
+  motivatedSeller Boolean  @default(false)
+  staleListing    Boolean  @default(false)
+  flipOpportunity Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([marketId, itemId])
+  @@index([marketId])
+  @@index([motivatedSeller])
+  @@index([staleListing])
+}
