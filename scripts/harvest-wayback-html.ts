@@ -15,7 +15,7 @@
  *   2. For each capture, fetch the raw HTML from Wayback
  *   3. Parse with linkedom (lightweight DOM parser)
  *   4. Extract advert cards: item_id from href, price from text
- *   5. Store as WaybackHtmlExtract rows
+ *   5. Store as PriceSnapshot rows
  *
  * Passive: only touches web.archive.org, never jiji.co.ke.
  * Idempotent: skips (marketId, itemId, captureTimestamp) already in DB.
@@ -145,7 +145,7 @@ function parseHtmlCards(html: string, marketId: string): ParsedCard[] {
     if (!priceMatch) continue;
 
     const price = parsePriceText(priceMatch[0], marketId);
-    if (price === null || price <= 0n) continue;
+    if (price === null || price <= BigInt(0)) continue;
 
     // Extract title (first non-price text block)
     const titleMatch = cardHtml.match(/<[^>]+class="[^"]*title[^"]*"[^>]*>([^<]+)/i);
@@ -230,11 +230,11 @@ async function main() {
       // 3. Parse advert cards from HTML
       const cards = parseHtmlCards(html, market.id);
 
-      // 4. Store each card as a WaybackHtmlExtract row
+      // 4. Store each card as a PriceSnapshot row
       let captureExtracts = 0;
       for (const card of cards) {
         try {
-          await db.waybackHtmlExtract.upsert({
+          await db.priceSnapshot.upsert({
             where: {
               marketId_itemId_captureTimestamp: {
                 marketId: market.id,
@@ -277,10 +277,11 @@ async function main() {
   console.log(`  Failed:           ${totalFailed}`);
 
   // Report items with multiple captures (the temporal signal)
-  const multiCapture = await db.waybackHtmlExtract.groupBy({
+  const multiCapture = await db.priceSnapshot.groupBy({
     by: ["marketId", "itemId"],
     _count: { captureTimestamp: true },
     having: { captureTimestamp: { _count: { gt: 1 } } },
+    orderBy: { marketId: "asc" },
     take: 5,
   });
   console.log(`\n  Items with multiple captures (temporal signal): ${multiCapture.length}+`);

@@ -299,8 +299,10 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<string>("deals");
   const [scamRings, setScamRings] = useState<any[]>([]);
   const [scamRingsLoading, setScamRingsLoading] = useState(false);
+  const [scamRingsFetched, setScamRingsFetched] = useState(false);
   const [temporalItems, setTemporalItems] = useState<any[]>([]);
   const [temporalLoading, setTemporalLoading] = useState(false);
+  const [temporalFetched, setTemporalFetched] = useState(false);
   const [sellerSheet, setSellerSheet] = useState<{ open: boolean; sellerId: string | null }>({
     open: false,
     sellerId: null,
@@ -466,6 +468,7 @@ export default function Home() {
       toast.error("Failed to load scam rings");
     } finally {
       setScamRingsLoading(false);
+      setScamRingsFetched(true);
     }
   }, []);
 
@@ -479,6 +482,7 @@ export default function Home() {
       toast.error("Failed to load temporal data");
     } finally {
       setTemporalLoading(false);
+      setTemporalFetched(true);
     }
   }, []);
 
@@ -501,15 +505,19 @@ export default function Home() {
     }
   }, []);
 
-  // Fetch scam rings / temporal when tab changes
+  // Fetch scam rings / temporal when tab changes.
+  // We fetch on every tab open (not just first time) so the user always
+  // sees fresh data after returning to the tab. The skeleton shows while
+  // loading OR before the first fetch completes — this prevents the
+  // "No scam rings detected" empty state from flashing before fetch starts.
   useEffect(() => {
-    if (activeTab === "scam-rings" && scamRings.length === 0) {
+    if (activeTab === "scam-rings") {
       fetchScamRings();
     }
-    if (activeTab === "temporal" && temporalItems.length === 0) {
+    if (activeTab === "temporal") {
       fetchTemporal();
     }
-  }, [activeTab, scamRings.length, temporalItems.length, fetchScamRings, fetchTemporal]);
+  }, [activeTab, fetchScamRings, fetchTemporal]);
 
   const runLiveSearch = useCallback(async () => {
     if (!searchQ.trim()) {
@@ -1165,12 +1173,12 @@ export default function Home() {
 
           {/* Scam Rings tab */}
           <TabsContent value="scam-rings" className="mt-4">
-            <ScamRingsView loading={scamRingsLoading} rings={scamRings} />
+            <ScamRingsView loading={scamRingsLoading} fetched={scamRingsFetched} rings={scamRings} />
           </TabsContent>
 
           {/* Temporal tab */}
           <TabsContent value="temporal" className="mt-4">
-            <TemporalView loading={temporalLoading} items={temporalItems} />
+            <TemporalView loading={temporalLoading} fetched={temporalFetched} items={temporalItems} />
           </TabsContent>
         </Tabs>
       </main>
@@ -1330,8 +1338,18 @@ function parseFactors(l: EnrichedListing): { label: string; value: string; dange
 // ScamRingsView — shows image hash duplicates (stolen photos / scam rings)
 // ---------------------------------------------------------------------------
 
-function ScamRingsView({ loading, rings }: { loading: boolean; rings: any[] }) {
-  if (loading) {
+function ScamRingsView({
+  loading,
+  fetched,
+  rings,
+}: {
+  loading: boolean;
+  fetched: boolean;
+  rings: any[];
+}) {
+  // Show skeleton while loading OR before the first fetch completes.
+  // Without the `fetched` gate, the empty state would flash before fetch starts.
+  if (loading || !fetched) {
     return (
       <div className="rounded-xl border bg-card p-6 space-y-3">
         {Array.from({ length: 3 }).map((_, i) => (
@@ -1432,8 +1450,16 @@ function ScamRingsView({ loading, rings }: { loading: boolean; rings: any[] }) {
 // TemporalView — shows items with multiple captures (price time series)
 // ---------------------------------------------------------------------------
 
-function TemporalView({ loading, items }: { loading: boolean; items: any[] }) {
-  if (loading) {
+function TemporalView({
+  loading,
+  fetched,
+  items,
+}: {
+  loading: boolean;
+  fetched: boolean;
+  items: any[];
+}) {
+  if (loading || !fetched) {
     return (
       <div className="rounded-xl border bg-card p-6 space-y-3">
         {Array.from({ length: 3 }).map((_, i) => (

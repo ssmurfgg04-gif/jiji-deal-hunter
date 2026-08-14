@@ -101,13 +101,17 @@ async function upsertSeller(seller: JijiSeller): Promise<boolean> {
   return phoneLeaked;
 }
 
-async function upsertListing(item: JijiListing): Promise<{ isNew: boolean; marketMedian: number }> {
+async function upsertListing(
+  item: JijiListing,
+  touched?: Set<string>
+): Promise<{ isNew: boolean; marketMedian: number }> {
   // Use incremental median cache instead of per-listing findMany.
   // Was O(N) per listing (27ms × N at scale). Now O(1) with 60s TTL.
   const marketMedian = await getCategoryMedian(item.marketId, item.category, item.price);
 
   const existing = await db.listing.findUnique({ where: { id: item.id } });
   const isNew = !existing;
+  const now = new Date();
 
   await db.listing.upsert({
     where: { id: item.id },
@@ -144,6 +148,8 @@ async function upsertListing(item: JijiListing): Promise<{ isNew: boolean; marke
       priceValuationLabel: item.price_valuation_label,
       priceValuationUrl: item.price_valuation_url,
       sellerId: item.seller.id,
+      lastSeenAt: now,
+      deletedAt: null, // resurrect if previously soft-deleted then reappeared
       priceHistory: {
         create: item.price_history.map((p) => ({
           price: BigInt(p.price),
@@ -179,8 +185,12 @@ async function upsertListing(item: JijiListing): Promise<{ isNew: boolean; marke
       priceValuationLabel: item.price_valuation_label,
       priceValuationUrl: item.price_valuation_url,
       sellerId: item.seller.id,
+      lastSeenAt: now,
+      deletedAt: null, // resurrect if previously soft-deleted then reappeared
     },
   });
+
+  touched?.add(item.id);
 
   if (existing) {
     const latestHistory = await db.priceHistory.findFirst({
@@ -306,6 +316,16 @@ export interface CollectionOptions {
   categories?: Array<{ catId: number; slug: string }>; // category-based (default)
   maxPagesPerCategory?: number; // default 1 (100 items per page)
   runCensus?: boolean; // refresh market census first
+  /**
+   * If true (default), after the sweep, mark any listings in the swept
+   * scope that were NOT touched this run as `deletedAt = now`. This keeps
+   * the DB from growing monotonically with stale inventory that's no
+   * longer on Jiji.
+   *
+   * Disabled for `queries` mode because query-mode doesn't define a finite
+   * "scope" — a listing might be alive but just not match the query.
+   */
+  pruneStale?: boolean;
 }
 
 export async function runCollection(opts: CollectionOptions = {}): Promise<CollectionSummary> {
@@ -329,11 +349,17 @@ export async function runCollection(opts: CollectionOptions = {}): Promise<Colle
   let scamsFlagged = 0;
   let blockedCount = 0;
   let totalApiCalls = 0;
+  let stalePruned = 0;
+
+  // Track which listing IDs were touched THIS run, per market, so we can
+  // soft-delete anything that wasn't seen (i.e. no longer on Jiji).
+  const touchedListingIds = new Map<string, Set<string>>();
 
   try {
     for (const marketId of marketIds) {
       await ensureMarket(marketId);
       log.push(`[${marketId}] Starting collection`);
+      touchedListingIds.set(marketId, new Set());
 
       // Step 1: market census (optional but recommended)
       if (opts.runCensus !== false) {
@@ -367,7 +393,7 @@ export async function runCollection(opts: CollectionOptions = {}): Promise<Colle
             try {
               await upsertSeller(item.seller);
               const phoneLeaked = item.seller.hide_phone && !!item.seller.phone;
-              const { isNew, marketMedian } = await upsertListing(item);
+              const { isNew, marketMedian } = await upsertListing(item, touchedListingIds.get(marketId)!);
               if (isNew) itemsCollected++;
               else itemsUpdated++;
               const score = await scoreAndStore(item, marketMedian, phoneLeaked);
@@ -396,7 +422,7 @@ export async function runCollection(opts: CollectionOptions = {}): Promise<Colle
             try {
               await upsertSeller(item.seller);
               const phoneLeaked = item.seller.hide_phone && !!item.seller.phone;
-              const { isNew, marketMedian } = await upsertListing(item);
+              const { isNew, marketMedian } = await upsertListing(item, touchedListingIds.get(marketId)!);
               if (isNew) itemsCollected++;
               else itemsUpdated++;
               const score = await scoreAndStore(item, marketMedian, phoneLeaked);
@@ -407,6 +433,32 @@ export async function runCollection(opts: CollectionOptions = {}): Promise<Colle
             }
           }
           log.push(`[${marketId}] Category ${cat.slug}: ${result.items.length} items`);
+        }
+      }
+
+      // Step 3: soft-delete stale listings (only in category mode, not query mode).
+      // A listing is "stale" if it was active before this run and wasn't touched
+      // during this sweep — i.e. Jiji no longer returns it in any of the
+      // categories we just scraped.
+      const shouldPrune = opts.pruneStale !== false && !(opts.queries && opts.queries.length > 0);
+      if (shouldPrune) {
+        const touched = touchedListingIds.get(marketId)!;
+        if (touched.size > 0) {
+          // Mark anything currently "live" (deletedAt IS NULL) that wasn't touched
+          // as soft-deleted. We don't actually DELETE the row — PriceHistory
+          // and DealScore reference it.
+          const result = await db.listing.updateMany({
+            where: {
+              marketId,
+              deletedAt: null,
+              id: { notIn: Array.from(touched) },
+            },
+            data: { deletedAt: new Date() },
+          });
+          stalePruned += result.count;
+          if (result.count > 0) {
+            log.push(`[${marketId}] Soft-deleted ${result.count} stale listings`);
+          }
         }
       }
     }
@@ -425,12 +477,12 @@ export async function runCollection(opts: CollectionOptions = {}): Promise<Colle
       },
     });
     log.push(
-      `Collection completed: ${itemsCollected} new, ${itemsUpdated} updated, ${fakeDiscounts} fake discounts, ${scamsFlagged} scams, ${blockedCount}/${totalApiCalls} calls blocked`
+      `Collection completed: ${itemsCollected} new, ${itemsUpdated} updated, ${fakeDiscounts} fake discounts, ${scamsFlagged} scams, ${stalePruned} stale pruned, ${blockedCount}/${totalApiCalls} calls blocked`
     );
 
     // WAL checkpoint — flushes WAL file contents back to the main DB so reads
     // stay fast and the WAL file doesn't grow unbounded.
-    if (itemsCollected > 0 || itemsUpdated > 0) {
+    if (itemsCollected > 0 || itemsUpdated > 0 || stalePruned > 0) {
       await checkpointDb();
       // Invalidate the category median cache so subsequent reads get fresh medians
       invalidateAllMedians();

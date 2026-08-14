@@ -9,8 +9,6 @@ that confirms leakage: the label was derived from price_vs_median, so
 the model was just learning the labeling function.
 """
 
-import json
-import os
 import sqlite3
 import sys
 from pathlib import Path

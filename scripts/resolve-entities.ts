@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Entity resolution — collapse multiple WaybackHtmlExtract rows
+ * Entity resolution — collapse multiple PriceSnapshot rows
  * (same itemId, different timestamps) into CanonicalItem records
  * with computed price time series.
  *
@@ -34,10 +34,10 @@ function computeStddev(prices: number[]): number {
 }
 
 async function main() {
-  console.log("[resolve] Loading all WaybackHtmlExtract rows...");
+  console.log("[resolve] Loading all PriceSnapshot rows...");
 
   // Group by (marketId, itemId)
-  const groups = await db.waybackHtmlExtract.groupBy({
+  const groups = await db.priceSnapshot.groupBy({
     by: ["marketId", "itemId"],
     _count: { captureTimestamp: true },
     orderBy: { _count: { captureTimestamp: "desc" } },
@@ -55,7 +55,7 @@ async function main() {
     const captureCount = group._count.captureTimestamp;
 
     // Fetch all captures for this item, sorted by timestamp
-    const captures = await db.waybackHtmlExtract.findMany({
+    const captures = await db.priceSnapshot.findMany({
       where: { marketId, itemId },
       orderBy: { captureTimestamp: "asc" },
     });

@@ -77,7 +77,7 @@ async function main() {
       hasPhoneLeak: phoneLeaked,
       hasVerifiedBadge: l.seller.verifiedBadge,
       priceHistory: l.priceHistory.map((p) => ({
-        price: p.price,
+        price: Number(p.price),
         recorded_at: p.recordedAt.toISOString(),
       })),
       dateCreated: l.dateCreated?.toISOString() ?? null,

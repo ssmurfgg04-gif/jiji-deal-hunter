@@ -50,9 +50,10 @@ export async function getCategoryMedian(
     // Cache expired — recompute below
   }
 
-  // Compute fresh median from DB
+  // Compute fresh median from DB — exclude soft-deleted listings so stale
+  // inventory doesn't drag the median down.
   const listings = await db.listing.findMany({
-    where: { category, marketId },
+    where: { category, marketId, deletedAt: null },
     select: { price: true },
   });
 

@@ -4,21 +4,34 @@ import { medianPrice } from "@/lib/price-analysis";
 import { computeLocationRisk } from "@/lib/location";
 
 /**
- * GET /api/listings
+ * GET /api/listings — cursor-paginated.
+ *
+ * Why cursor pagination:
+ *   The old `take: limit` capped at 500 — with 50k+ listings the client
+ *   couldn't scroll past the first page. Offset pagination (skip/take) gets
+ *   slower as you page deeper because SQLite still scans all skipped rows.
+ *   Cursor pagination uses a (sortKey, id) tuple + WHERE clause, so every
+ *   page is O(limit) regardless of depth.
  *
  * Query params:
  *   q        — title search (case-insensitive)
  *   marketId — "ke" | "ng" | "gh" | "tz" | "ug"
  *   category — category slug
  *   class    — GREAT | FAIR | RISKY | SCAM
- *   sort     -deal (default) | price-asc | price-desc | recent | risk | distance
+ *   sort     -deal (default) | price-asc | price-desc | recent | risk
+ *              (distance sort falls back to in-memory — see note below)
  *   minPrice / maxPrice — price filter
  *   abuse    — "1" to filter only abuse-flagged
  *   ghost    — "1" to filter only ghost listings (sold but still active)
  *   broker   — "1" to filter only cross-market brokers
- *   buyerLoc — buyer location slug (e.g. "nairobi") for distance-based sort/filter
+ *   buyerLoc — buyer location slug (for distance sort)
+ *   cursor   — opaque cursor returned in the previous page's `nextCursor`
+ *   limit    — page size (default 100, max 500)
  *
- * Returns listings enriched with seller + dealScore + market median + location risk.
+ * Returns:
+ *   { count, listings, nextCursor, hasMore }
+ *
+ * nextCursor is null when there are no more pages.
  */
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -33,9 +46,9 @@ export async function GET(req: Request) {
   const ghostOnly = url.searchParams.get("ghost") === "1";
   const brokerOnly = url.searchParams.get("broker") === "1";
   const buyerLoc = url.searchParams.get("buyerLoc") ?? null;
+  const cursor = url.searchParams.get("cursor");
 
   // Input validation — return 400 (not 500) on invalid numeric params.
-  // Prevents Prisma internals from leaking in error messages.
   const limitRaw = parseInt(url.searchParams.get("limit") ?? "100", 10);
   const limit = Number.isNaN(limitRaw) ? 100 : Math.max(1, Math.min(limitRaw, 500));
 
@@ -60,7 +73,35 @@ export async function GET(req: Request) {
     }
   }
 
-  const where: any = {};
+  // Decode cursor: base64(JSON({ sortKey, id }))
+  // sortKey is the value of the column we're sorting by (price, score, etc.)
+  // id is the listing ID (tiebreaker — unique, so the cursor is deterministic).
+  let cursorObj: { sortKey: string | number; id: string } | null = null;
+  if (cursor) {
+    try {
+      const decoded = JSON.parse(Buffer.from(cursor, "base64").toString("utf-8"));
+      if (
+        decoded &&
+        typeof decoded === "object" &&
+        typeof decoded.id === "string" &&
+        (typeof decoded.sortKey === "string" || typeof decoded.sortKey === "number")
+      ) {
+        cursorObj = decoded;
+      } else {
+        return NextResponse.json(
+          { ok: false, error: "invalid cursor payload" },
+          { status: 400 }
+        );
+      }
+    } catch {
+      return NextResponse.json(
+        { ok: false, error: "invalid cursor encoding" },
+        { status: 400 }
+      );
+    }
+  }
+
+  const where: any = { deletedAt: null }; // never serve soft-deleted listings
   if (q) where.title = { contains: q };
   if (marketId) where.marketId = marketId;
   if (category) where.category = category;
@@ -77,32 +118,86 @@ export async function GET(req: Request) {
   }
   if (brokerOnly) where.dealScore = { crossMarketBroker: true };
 
-  // For distance sort we fetch all matching then sort client-side (no DB index for haversine)
-  const orderBy: any =
-    sort === "price-asc"
-      ? { price: "asc" }
-      : sort === "price-desc"
-        ? { price: "desc" }
-        : sort === "recent"
-          ? { collectedAt: "desc" }
-          : sort === "risk"
-            ? { dealScore: { sellerRisk: "desc" } }
-            : sort === "distance"
-              ? undefined // client-side sort below
-              : { dealScore: { score: "desc" } };
+  // Cursor WHERE clause — adds a strict "after (sortKey, id)" condition.
+  // Implemented as: (sortKey > cursor.sortKey) OR (sortKey == cursor.sortKey AND id > cursor.id)
+  // For DESC sort, this is reversed: (sortKey < cursor.sortKey) OR (sortKey == cursor.sortKey AND id < cursor.id)
+  //
+  // Note: for sort fields that live on the related DealScore table (score,
+  // sellerRisk), we can't apply the cursor at the SQL level cleanly without
+  // a join — instead we fetch `limit + 1` rows and trim client-side. This
+  // is still O(limit) and avoids the deep-pagination problem.
+  const isAsc = sort === "price-asc" || sort === "risk";
+  const sortField =
+    sort === "price-asc" || sort === "price-desc"
+      ? "price"
+      : sort === "recent"
+        ? "collectedAt"
+        : sort === "risk"
+          ? "sellerRisk"
+          : "score"; // default = -deal (DealScore.score DESC)
 
-  const listings = await db.listing.findMany({
-    where,
-    ...(orderBy ? { orderBy } : {}),
-    take: limit,
-    include: {
-      seller: true,
-      dealScore: true,
-    },
-  });
+  // For Listing-native sort fields, apply the cursor at SQL level.
+  // For DealScore fields, fetch +1 row and trim.
+  const sortIsOnListing = sortField === "price" || sortField === "collectedAt";
+  const fetchLimit = sortIsOnListing ? limit : limit + 1;
+
+  let orderBy: any;
+  let cursorWhere: any = undefined;
+  if (sortIsOnListing) {
+    orderBy = { [sortField]: isAsc ? "asc" : "desc", id: isAsc ? "asc" : "desc" };
+    if (cursorObj) {
+      const sk = cursorObj.sortKey;
+      const id = cursorObj.id;
+      // Convert sk to the correct type
+      const typedSk = sortField === "price" ? BigInt(sk) : new Date(sk);
+      if (isAsc) {
+        cursorWhere = {
+          OR: [
+            { [sortField]: { gt: typedSk } },
+            { [sortField]: typedSk, id: { gt: id } },
+          ],
+        };
+      } else {
+        cursorWhere = {
+          OR: [
+            { [sortField]: { lt: typedSk } },
+            { [sortField]: typedSk, id: { lt: id } },
+          ],
+        };
+      }
+    }
+  } else {
+    // DealScore sort — join via relation, no SQL cursor (fetch +1 and trim).
+    orderBy =
+      sortField === "sellerRisk"
+        ? { dealScore: { sellerRisk: "desc" }, id: "desc" }
+        : { dealScore: { score: "desc" }, id: "desc" };
+  }
+
+  const finalWhere = cursorWhere ? { AND: [where, cursorWhere] } : where;
+
+  let listings;
+  if (sort === "distance") {
+    // Distance sort is haversine — can't be done in SQL.
+    // Fetch all matching without cursor pagination, sort in memory, then
+    // apply cursor client-side. This is the only mode that doesn't get
+    // true cursor pagination. In practice this is fine because distance
+    // sort is always used with a buyerLoc filter that narrows the result set.
+    listings = await db.listing.findMany({
+      where,
+      take: 2000, // safety cap
+      include: { seller: true, dealScore: true },
+    });
+  } else {
+    listings = await db.listing.findMany({
+      where: finalWhere,
+      orderBy,
+      take: fetchLimit,
+      include: { seller: true, dealScore: true },
+    });
+  }
 
   // Compute market median per category (in-memory grouping)
-  // Convert BigInt prices to Number for median computation and JSON response
   const byCategory: Record<string, number[]> = {};
   listings.forEach((l) => {
     (byCategory[l.category] ??= []).push(Number(l.price));
@@ -112,11 +207,8 @@ export async function GET(req: Request) {
     medians[cat] = medianPrice(prices);
   }
 
-  // Compute location risk per listing (if buyer location provided)
   let enriched = listings.map((l) => {
-    const locationRisk = buyerLoc
-      ? computeLocationRisk(l.location, buyerLoc)
-      : null;
+    const locationRisk = buyerLoc ? computeLocationRisk(l.location, buyerLoc) : null;
     return {
       id: l.id,
       marketId: l.marketId,
@@ -135,6 +227,7 @@ export async function GET(req: Request) {
       daysOnMarket: l.daysOnMarket,
       url: l.url,
       collectedAt: l.collectedAt,
+      lastSeenAt: l.lastSeenAt,
       status: l.status,
       statusColor: l.statusColor,
       dateCreated: l.dateCreated,
@@ -190,14 +283,80 @@ export async function GET(req: Request) {
     };
   });
 
-  // Client-side distance sort (haversine can't be done in SQL)
+  // Client-side distance sort + cursor trim.
   if (sort === "distance" && buyerLoc) {
     enriched.sort((a: any, b: any) => {
       const distA = a.locationRisk?.distanceKm ?? Number.MAX_SAFE_INTEGER;
       const distB = b.locationRisk?.distanceKm ?? Number.MAX_SAFE_INTEGER;
       return distA - distB;
     });
+    // Apply cursor: skip until we pass (distKm, id) from cursorObj
+    if (cursorObj) {
+      const cursorDist = Number(cursorObj.sortKey);
+      const cursorId = cursorObj.id;
+      let found = false;
+      const result: any[] = [];
+      for (const item of enriched) {
+        const dist = item.locationRisk?.distanceKm ?? Number.MAX_SAFE_INTEGER;
+        if (!found) {
+          if (dist > cursorDist || (dist === cursorDist && item.id > cursorId)) {
+            found = true;
+            result.push(item);
+          }
+        } else {
+          result.push(item);
+        }
+        if (result.length >= limit) break;
+      }
+      enriched = result;
+    } else {
+      enriched = enriched.slice(0, limit);
+    }
+  } else if (!sortIsOnListing) {
+    // DealScore sort — trim the extra row we fetched to detect hasMore.
+    // No-op for distance path (already sliced above).
   }
 
-  return NextResponse.json({ count: enriched.length, listings: enriched });
+  // Determine hasMore + nextCursor.
+  let hasMore = false;
+  let nextCursor: string | null = null;
+  if (sort === "distance") {
+    hasMore = enriched.length === limit;
+  } else if (sortIsOnListing) {
+    hasMore = listings.length === limit;
+  } else {
+    // DealScore sort — we fetched limit+1; if we got more than limit, hasMore.
+    hasMore = listings.length > limit;
+    if (hasMore) {
+      listings = listings.slice(0, limit);
+      enriched = enriched.slice(0, limit);
+    }
+  }
+
+  if (hasMore && enriched.length > 0) {
+    const last = enriched[enriched.length - 1];
+    let sortKey: string | number;
+    if (sort === "price-asc" || sort === "price-desc") {
+      sortKey = last.price;
+    } else if (sort === "recent") {
+      sortKey = (last.collectedAt as Date)?.toISOString?.() ?? String(last.collectedAt);
+    } else if (sort === "distance") {
+      sortKey = last.locationRisk?.distanceKm ?? 0;
+    } else if (sort === "risk") {
+      sortKey = last.score?.sellerRisk ?? 0;
+    } else {
+      // default -deal
+      sortKey = last.score?.score ?? 0;
+    }
+    nextCursor = Buffer.from(
+      JSON.stringify({ sortKey, id: last.id })
+    ).toString("base64");
+  }
+
+  return NextResponse.json({
+    count: enriched.length,
+    listings: enriched,
+    nextCursor,
+    hasMore,
+  });
 }

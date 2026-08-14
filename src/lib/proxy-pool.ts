@@ -36,14 +36,17 @@ async function validateOne(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const resp = await fetch(TARGET_HEALTH_URL, {
-      proxy: proxyUrl as any, // fetch proxy option (Node 22+); no-op in older runtimes
+    // `proxy` is a Node 22+ fetch option not yet in the TS DOM lib types.
+    // Cast the whole init object to silence the type error.
+    const init: any = {
       signal: controller.signal,
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
       },
-    });
+      proxy: proxyUrl,
+    };
+    const resp = await fetch(TARGET_HEALTH_URL, init);
     clearTimeout(timer);
     if (resp.ok) {
       return { url: proxyUrl, working: true, latencyMs: Date.now() - start };

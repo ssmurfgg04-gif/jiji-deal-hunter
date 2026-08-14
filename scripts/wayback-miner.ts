@@ -57,7 +57,7 @@ function httpGet(url: string, tries = 3): string | null {
         headers: { "User-Agent": UA },
         // @ts-ignore — Bun supports sync flag on fetch in scripts
         sync: true,
-      } as any);
+      } as any) as any;
       if (resp.ok) return resp.text();
       if (resp.status === 404) return null;
     } catch (e: any) {

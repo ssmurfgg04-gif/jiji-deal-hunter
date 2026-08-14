@@ -1,14 +1,14 @@
 #!/usr/bin/env bun
 /**
  * Import temporal data from the existing wayback-dataset CSV into
- * the WaybackHtmlExtract table.
+ * the PriceSnapshot table.
  *
  * The CSV at scripts/jiji-wayback-listings.csv has 3,947 rows with
  * `capture_ts` timestamps. 595 GUIDs have multiple captures — that's
  * the temporal signal we need for the non-leaking motivated_seller target.
  *
  * This script extracts (marketId, itemId, price, captureTimestamp) tuples
- * from the CSV into WaybackHtmlExtract rows, which the resolve-entities
+ * from the CSV into PriceSnapshot rows, which the resolve-entities
  * script then collapses into CanonicalItem records with price time series.
  *
  * Usage: bun scripts/import-temporal-from-csv.ts
@@ -110,7 +110,7 @@ async function main() {
   }
   console.log(`[temporal] ${multiCapture} items with multiple captures (temporal signal)`);
 
-  // Insert into WaybackHtmlExtract
+  // Insert into PriceSnapshot
   let inserted = 0;
   let skipped = 0;
 
@@ -130,7 +130,7 @@ async function main() {
       if (price <= 0) continue;
 
       try {
-        await db.waybackHtmlExtract.upsert({
+        await db.priceSnapshot.upsert({
           where: {
             marketId_itemId_captureTimestamp: {
               marketId,
@@ -160,8 +160,8 @@ async function main() {
   console.log(`\n[temporal] Done. Inserted: ${inserted}, Skipped: ${skipped}`);
 
   // Verify
-  const total = await db.waybackHtmlExtract.count();
-  const multiCaptureItems = await db.waybackHtmlExtract.groupBy({
+  const total = await db.priceSnapshot.count();
+  const multiCaptureItems = await db.priceSnapshot.groupBy({
     by: ["marketId", "itemId"],
     _count: { captureTimestamp: true },
     having: { captureTimestamp: { _count: { gt: 1 } } },

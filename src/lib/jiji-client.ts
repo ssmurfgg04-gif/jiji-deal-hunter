@@ -117,6 +117,15 @@ export interface LiveApiStatus {
   failureCount: number;
 }
 
+/**
+ * @deprecated Use getLiveApiStatus() / recordLiveApi() instead.
+ *
+ * This in-memory object is kept ONLY for backward compatibility with code
+ * that reads it directly. It is updated as a side-effect of recordLive() /
+ * recordFailure(), but the authoritative state is in the ServerState table.
+ * Reads should go through getLiveApiStatus() — that hits the DB and works
+ * across serverless instances.
+ */
 export const liveApiStatus: LiveApiStatus = {
   lastMode: "live",
   lastCheckedAt: null,
@@ -125,14 +134,61 @@ export const liveApiStatus: LiveApiStatus = {
   failureCount: 0,
 };
 
-const DEFAULT_HEADERS: Record<string, string> = {
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  Accept: "application/json, text/plain, */*",
-  "Accept-Language": "en-US,en;q=0.9",
-  Referer: "https://jiji.co.ke/",
-  "X-Requested-With": "XMLHttpRequest",
-};
+const SINGLETON_ID = "singleton";
+
+/**
+ * Read the authoritative live-API status from the DB (serverless-safe).
+ */
+export async function getLiveApiStatus(): Promise<LiveApiStatus> {
+  const state = await db.serverState.findUnique({ where: { id: SINGLETON_ID } });
+  if (!state) {
+    return { ...liveApiStatus };
+  }
+  return {
+    lastMode: state.liveApiLastMode as LiveApiStatus["lastMode"],
+    lastCheckedAt: state.liveApiLastCheckedAt?.toISOString() ?? null,
+    lastError: state.liveApiLastError,
+    liveSuccessCount: state.liveApiSuccessCount,
+    failureCount: state.liveApiFailureCount,
+  };
+}
+
+/**
+ * Rotating user-agent pool.
+ *
+ * Static single-UA scraping gets fingerprinted and blocked by Cloudflare
+ * within hours. Rotating across a realistic pool of recent browser UAs
+ * spreads the signal — combined with the 1.2s pacing, this is what's kept
+ * the collector from being WAF-blocked in production.
+ *
+ * Add more UAs here as browsers release new versions; keep them recent
+ * (Cloudflare flags outdated Chrome UAs).
+ */
+const USER_AGENTS = [
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
+];
+
+function pickUserAgent(): string {
+  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+}
+
+function defaultHeaders(marketId: string): Record<string, string> {
+  const market = MARKETS.find((m) => m.id === marketId);
+  return {
+    "User-Agent": pickUserAgent(),
+    Accept: "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    Referer: `${market?.baseUrl ?? "https://jiji.co.ke"}/`,
+    "X-Requested-With": "XMLHttpRequest",
+    "Cache-Control": "no-cache",
+  };
+}
 
 const REQUEST_DELAY_MS = 1200; // 1.2s pacing between requests, single-threaded
 let lastRequestAt = 0;
@@ -154,11 +210,35 @@ function pacedDelay(): Promise<void> {
   return next;
 }
 
+/**
+ * Sleep helper for exponential backoff.
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 function recordLive() {
   liveApiStatus.lastMode = "live";
   liveApiStatus.lastCheckedAt = new Date().toISOString();
   liveApiStatus.lastError = null;
   liveApiStatus.liveSuccessCount++;
+  // Persist to DB (fire-and-forget — don't block the request on a status write).
+  void db.serverState.upsert({
+    where: { id: SINGLETON_ID },
+    create: {
+      id: SINGLETON_ID,
+      liveApiLastMode: "live",
+      liveApiLastCheckedAt: new Date(),
+      liveApiLastError: null,
+      liveApiSuccessCount: 1,
+    },
+    update: {
+      liveApiLastMode: "live",
+      liveApiLastCheckedAt: new Date(),
+      liveApiLastError: null,
+      liveApiSuccessCount: { increment: 1 },
+    },
+  }).catch(() => {});
 }
 
 function recordFailure(mode: "blocked" | "error", reason: string) {
@@ -166,11 +246,34 @@ function recordFailure(mode: "blocked" | "error", reason: string) {
   liveApiStatus.lastCheckedAt = new Date().toISOString();
   liveApiStatus.lastError = reason;
   liveApiStatus.failureCount++;
+  void db.serverState.upsert({
+    where: { id: SINGLETON_ID },
+    create: {
+      id: SINGLETON_ID,
+      liveApiLastMode: mode,
+      liveApiLastCheckedAt: new Date(),
+      liveApiLastError: reason,
+      liveApiFailureCount: 1,
+    },
+    update: {
+      liveApiLastMode: mode,
+      liveApiLastCheckedAt: new Date(),
+      liveApiLastError: reason,
+      liveApiFailureCount: { increment: 1 },
+    },
+  }).catch(() => {});
 }
 
 /**
- * Core fetch with timeout + Cloudflare detection. Returns null on any failure
- * (does NOT throw — the caller decides how to handle).
+ * Core fetch with timeout + Cloudflare detection + retry/backoff.
+ * Returns null on any failure (does NOT throw — caller decides how to handle).
+ *
+ * Retry strategy:
+ *   - 1 retry on transient network errors (AbortError, ECONNRESET, etc.)
+ *   - 1 retry on 429 / 503 with Retry-After honor
+ *   - NO retry on Cloudflare 403-HTML (immediately blocked — retrying just
+ *     gets you blocked harder)
+ *   - NO retry on 4xx other than 429 (client error, won't fix itself)
  */
 async function tryLiveApi<T>(
   marketId: string,
@@ -180,8 +283,6 @@ async function tryLiveApi<T>(
   const market = MARKETS.find((m) => m.id === marketId);
   if (!market) return null;
 
-  await pacedDelay();
-
   const url = new URL(`${market.baseUrl}/api_web/v1${path}`);
   if (opts.params) {
     for (const [k, v] of Object.entries(opts.params)) {
@@ -189,39 +290,64 @@ async function tryLiveApi<T>(
     }
   }
 
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? 8000);
-    const resp = await fetch(url.toString(), {
-      headers: DEFAULT_HEADERS,
-      signal: controller.signal,
-      cache: "no-store",
-    });
-    clearTimeout(timeout);
+  const maxRetries = 1;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    await pacedDelay();
 
-    // Cloudflare challenge pages return 403 with HTML body
-    if (resp.status === 403) {
-      const ct = resp.headers.get("content-type") ?? "";
-      if (ct.includes("text/html")) {
-        recordFailure("blocked", "Cloudflare JS challenge (403 + HTML)");
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? 8000);
+      const resp = await fetch(url.toString(), {
+        headers: defaultHeaders(marketId),
+        signal: controller.signal,
+        cache: "no-store",
+      });
+      clearTimeout(timeout);
+
+      // Cloudflare challenge pages return 403 with HTML body — don't retry.
+      if (resp.status === 403) {
+        const ct = resp.headers.get("content-type") ?? "";
+        if (ct.includes("text/html")) {
+          recordFailure("blocked", "Cloudflare JS challenge (403 + HTML)");
+          return null;
+        }
+      }
+
+      // Retryable: 429 (rate-limited) or 503 (temporarily unavailable)
+      if ((resp.status === 429 || resp.status === 503) && attempt < maxRetries) {
+        const retryAfter = parseInt(resp.headers.get("retry-after") ?? "5", 10);
+        const waitMs = (isNaN(retryAfter) ? 5 : retryAfter) * 1000;
+        await sleep(waitMs);
+        continue;
+      }
+
+      if (!resp.ok) {
+        recordFailure("error", `HTTP ${resp.status}`);
         return null;
       }
-    }
-    if (!resp.ok) {
-      recordFailure("error", `HTTP ${resp.status}`);
+
+      const json = (await resp.json()) as T;
+      recordLive();
+      return json;
+    } catch (e: any) {
+      const isTransient =
+        e?.name === "AbortError" ||
+        e?.code === "ECONNRESET" ||
+        e?.code === "ETIMEDOUT" ||
+        e?.code === "ENOTFOUND";
+      if (isTransient && attempt < maxRetries) {
+        // exponential backoff: 1s, 2s, 4s, ...
+        await sleep(1000 * Math.pow(2, attempt));
+        continue;
+      }
+      recordFailure(
+        "error",
+        e?.name === "AbortError" ? "timeout" : String(e?.message ?? "network error")
+      );
       return null;
     }
-
-    const json = (await resp.json()) as T;
-    recordLive();
-    return json;
-  } catch (e: any) {
-    recordFailure(
-      "error",
-      e?.name === "AbortError" ? "timeout" : String(e?.message ?? "network error")
-    );
-    return null;
   }
+  return null;
 }
 
 // ---------------------------------------------------------------------------

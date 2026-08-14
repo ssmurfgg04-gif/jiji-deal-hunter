@@ -25,6 +25,7 @@ export async function GET(req: Request) {
         where: { id: sellerId },
         include: {
           listings: {
+            where: { deletedAt: null },
             select: {
               id: true,
               title: true,

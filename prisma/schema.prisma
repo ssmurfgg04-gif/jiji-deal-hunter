@@ -121,6 +121,16 @@ model Listing {
   // Relations
   sellerId          String
   seller            Seller   @relation(fields: [sellerId], references: [id])
+  // Soft-delete + liveness tracking.
+  // `deletedAt` is set by runCollection when a listing was NOT seen in the
+  // current sweep — this is how we prune stale inventory without losing
+  // historical price data (PriceHistory rows are preserved via onDelete: Cascade
+  // but we filter `deletedAt == null` on every read).
+  // `lastSeenAt` is bumped on every successful collection that included this
+  // listing, enabling efficient "stale since" queries.
+  deletedAt        DateTime?
+  lastSeenAt       DateTime  @default(now())
+
   collectedAt       DateTime @default(now())
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -134,6 +144,8 @@ model Listing {
   @@index([sellerId])
   @@index([category])
   @@index([categoryId])
+  @@index([deletedAt])
+  @@index([lastSeenAt])
 }
 
 model PriceHistory {
@@ -245,39 +257,77 @@ model CacheEntry {
   @@index([expiresAt])
 }
 
+/**
+ * Server-side mutable state (scheduler + liveApiStatus).
+ *
+ * Replaces the module-level mutable objects in scheduler.ts and jiji-client.ts.
+ * Those broke under serverless / multi-instance deployments because each
+ * instance had its own copy. Persisting here means all replicas see the same
+ * scheduler state and live API status.
+ *
+ * Single-row table (id = "singleton") — enforced by app code.
+ */
+model ServerState {
+  id              String   @id // always "singleton"
+  // Scheduler
+  schedulerEnabled     Boolean  @default(true)
+  schedulerRunning    Boolean  @default(false)
+  schedulerIntervalMs Int      @default(1800000)
+  schedulerLastRunAt  DateTime?
+  schedulerNextRunAt  DateTime?
+  schedulerTotalRuns  Int      @default(0)
+  schedulerLastSummary String  @default("{}") // JSON
+  // Live API status
+  liveApiLastMode      String   @default("live") // live | blocked | error
+  liveApiLastCheckedAt DateTime?
+  liveApiLastError     String?
+  liveApiSuccessCount  Int      @default(0)
+  liveApiFailureCount  Int      @default(0)
+  // Mutability
+  updatedAt            DateTime @updatedAt
+}
+
 // ---------------------------------------------------------------------------
 // Temporal pipeline tables
 // ---------------------------------------------------------------------------
 
 /**
- * Raw HTML card extracts from Wayback category-page captures.
- * Each row = one (item_id, price, timestamp) tuple extracted from a
- * category-page HTML snapshot in the Wayback Machine.
+ * Price snapshot — one (item, price, timestamp) tuple.
  *
- * These are the temporal price signals — multiple captures of the same
- * item at different points in time let us compute price_delta, days_listed, etc.
+ * Renamed from WaybackHtmlExtract to reflect that this table now serves BOTH
+ * archived Wayback captures AND live weekly revisits. The shape is identical
+ * — only the data source differs (captureUrl tells you which).
+ *
+ * Multiple captures of the same item at different points in time let us
+ * compute price_delta, days_listed, motivated_seller, etc.
+ *
+ * For backward compatibility with existing scripts that reference the old
+ * Prisma model name, `WaybackHtmlExtract` is kept as an @@alias. New code
+ * should use PriceSnapshot.
  */
-model WaybackHtmlExtract {
+model PriceSnapshot {
   id              String   @id @default(cuid())
   marketId        String   // "ke" | "ng" | "tz" | ...
   itemId          String   // Jiji's advert GUID (extracted from card link href)
   price           BigInt   // parsed from card text (KSh/NGN/TSh stripped)
   currency        String   @default("KES")
   categorySlug    String?  // category page slug this was found on
-  captureTimestamp DateTime // Wayback capture timestamp (when the page was archived)
-  captureUrl      String?  // full Wayback URL for provenance
-  pageTitle       String?  // title text from the card (for entity-resolution sanity check)
+  captureTimestamp DateTime // Wayback capture timestamp OR live revisit time
+  captureUrl      String?  // full Wayback URL OR live Jiji URL for provenance
+  source          String   @default("wayback") // wayback | live
+  pageTitle       String?  // title text from the card (entity-resolution sanity check)
   createdAt       DateTime @default(now())
 
   @@unique([marketId, itemId, captureTimestamp])
   @@index([marketId, itemId])
   @@index([marketId, captureTimestamp])
   @@index([itemId])
+  @@index([source])
 }
 
 /**
  * Canonical items after entity resolution.
- * Collapses multiple WaybackHtmlExtract rows (same itemId, different timestamps)
+ * Collapses multiple PriceSnapshot rows (same itemId, different timestamps)
  * into a single record with a computed price time series.
  *
  * This is the temporal feature layer — enables the non-leaking

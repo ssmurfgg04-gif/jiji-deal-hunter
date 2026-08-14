@@ -9,7 +9,7 @@ import {
  * GET /api/scheduler — current scheduler status (next run, interval, last summary)
  */
 export async function GET() {
-  return NextResponse.json(getSchedulerStatus());
+  return NextResponse.json(await getSchedulerStatus());
 }
 
 /**
@@ -21,16 +21,16 @@ export async function POST(req: Request) {
   const action = body?.action;
 
   if (action === "pause") {
-    setSchedulerEnabled(false);
-    return NextResponse.json({ ok: true, status: getSchedulerStatus() });
+    await setSchedulerEnabled(false);
+    return NextResponse.json({ ok: true, status: await getSchedulerStatus() });
   }
   if (action === "resume") {
-    setSchedulerEnabled(true);
-    return NextResponse.json({ ok: true, status: getSchedulerStatus() });
+    await setSchedulerEnabled(true);
+    return NextResponse.json({ ok: true, status: await getSchedulerStatus() });
   }
   if (action === "trigger") {
     await triggerImmediate();
-    return NextResponse.json({ ok: true, status: getSchedulerStatus() });
+    return NextResponse.json({ ok: true, status: await getSchedulerStatus() });
   }
   return NextResponse.json({ ok: false, error: "unknown action" }, { status: 400 });
 }

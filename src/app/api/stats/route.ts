@@ -15,7 +15,10 @@ export async function GET() {
   const CACHE_TTL = 30; // 30 seconds
 
   const data = await cacheAside(CACHE_KEY, CACHE_TTL, async () => {
-    const total = await db.listing.count();
+    // Filter soft-deleted listings from all counts — dashboard should
+    // show currently-tracked inventory, not historical tombstones.
+    const liveWhere = { deletedAt: null };
+    const total = await db.listing.count({ where: liveWhere });
     const greatDeals = await db.dealScore.count({ where: { classification: "GREAT" } });
     const fairDeals = await db.dealScore.count({ where: { classification: "FAIR" } });
     const riskyDeals = await db.dealScore.count({ where: { classification: "RISKY" } });
@@ -51,12 +54,14 @@ export async function GET() {
 
     const byCategory = await db.listing.groupBy({
       by: ["category"],
+      where: liveWhere,
       _count: { id: true },
       orderBy: { _count: { id: "desc" } },
     });
 
     const byMarket = await db.listing.groupBy({
       by: ["marketId"],
+      where: liveWhere,
       _count: { id: true },
       orderBy: { _count: { id: "desc" } },
     });
