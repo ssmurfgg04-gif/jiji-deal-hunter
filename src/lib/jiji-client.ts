@@ -1,31 +1,45 @@
 /**
- * Jiji API Client — live + fallback
+ * Jiji API Client — LIVE ONLY
  *
- * Pipeline:
- *   1. Try the live `api_web/v1/*` endpoint with a short timeout.
- *   2. If reachable, parse the response — Jiji wraps search results in
- *      `{ adverts: [...] }` or `{ data: { adverts: [...] } }`; we handle
- *      the common shapes flexibly.
- *   3. If unreachable (sandbox, network block, Cloudflare challenge), fall
- *      back to the synthetic generator so the dashboard always has data.
+ * Multi-market (Kenya, Nigeria, Ghana, Tanzania, Uganda).
  *
- * A liveApiStatus object tracks which mode the last call used, so the UI
- * can surface a "LIVE / SAMPLE" badge in the header.
+ * Endpoints (verified via recon):
+ *   GET /api_web/v1/categories_counts.json       — market census (catId → count)
+ *   GET /api_web/v1/listing?category_type={id}-{slug}&ads_per_page=100
+ *                                                   — category feed with next_url pagination
+ *   GET /api_web/v1/listing?user_id={numeric}&page=N
+ *                                                   — seller inventory (every ad has user_phone)
+ *   GET /api_web/v1/item/{guid}/data.json        — full item detail + moderation history
+ *   GET /api_web/v1/seller/{id}/data.json        — seller profile (adverts_count, feedback_count)
+ *   GET /api_web/v1/opinions/{id}.json           — seller reviews (test if exists)
+ *   GET /api_web/v1/search?q=...&min_price=...&max_price=...&sort=...&page=1
+ *                                                   — filtered search
+ *
+ * Pacing: 1-2 seconds between requests, single-threaded. No proxy needed for
+ * direct API calls — Cloudflare challenge only triggers on aggressive HTML scraping.
+ *
+ * IMPORTANT: This client does NOT silently fall back to synthetic data. If a live
+ * call fails, it returns null and the caller decides how to handle the gap
+ * (typically by logging to CollectionRun.log and continuing).
  */
 
-const JIJI_BASE = "https://jiji.co.ke";
-const API_PREFIX = "/api_web/v1";
+import { db } from "./db";
 
-export interface JijiSeller {
-  id: string;
-  username: string;
-  location: string | null;
-  account_age_days: number;
-  total_items: number;
-  rating: number;
-  hide_phone: boolean;
-  phone: string | null;
-  verified_badge: boolean;
+export const MARKETS = [
+  { id: "ke", name: "Kenya", baseUrl: "https://jiji.co.ke", currency: "KES" },
+  { id: "ng", name: "Nigeria", baseUrl: "https://jiji.ng", currency: "NGN" },
+  { id: "gh", name: "Ghana", baseUrl: "https://jiji.com.gh", currency: "GHS" },
+  { id: "tz", name: "Tanzania", baseUrl: "https://jiji.co.tz", currency: "TZS" },
+  { id: "ug", name: "Uganda", baseUrl: "https://jiji.ug", currency: "UGX" },
+] as const;
+
+export type MarketId = (typeof MARKETS)[number]["id"];
+
+export interface MarketCensusEntry {
+  catId: number;
+  slug: string;
+  name?: string;
+  count: number;
 }
 
 export interface JijiImage {
@@ -34,18 +48,51 @@ export interface JijiImage {
   height: number;
 }
 
+export interface JijiSeller {
+  id: string;
+  marketId: string;
+  numericUserId: number;
+  username: string;
+  location: string | null;
+  account_age_days: number;
+  total_items: number;
+  adverts_count: number;
+  feedback_count: number;
+  rating: number;
+  hide_phone: boolean;
+  phone: string | null;
+  verified_badge: boolean;
+}
+
 export interface JijiListing {
   id: string;
+  marketId: string;
+  guid: string;
   title: string;
   price: number;
   currency: string;
   category: string;
+  category_id: number | null;
   condition: string;
   location: string | null;
   url: string | null;
   images: JijiImage[];
   views: number;
+  fav_count: number;
   days_on_market: number;
+  // Scam-signal timestamps
+  date_created: string | null;
+  date_edited: string | null;
+  date_moderated: string | null;
+  // Scam-signal booleans
+  status: string;
+  status_color: string | null;
+  sold_reported: boolean;
+  can_make_an_offer: boolean;
+  abuse_reported: boolean;
+  is_boost: boolean;
+  paid_info: any;
+  available_tops_count: number;
   seller: JijiSeller;
   price_history: { price: number; recorded_at: string }[];
 }
@@ -54,35 +101,44 @@ export interface JijiSearchResult {
   items: JijiListing[];
   total: number;
   page: number;
+  next_url: string | null;
 }
 
 export interface LiveApiStatus {
-  lastMode: "live" | "sample";
+  lastMode: "live" | "blocked" | "error";
   lastCheckedAt: string | null;
   lastError: string | null;
   liveSuccessCount: number;
-  sampleFallbackCount: number;
+  failureCount: number;
 }
+
+export const liveApiStatus: LiveApiStatus = {
+  lastMode: "live",
+  lastCheckedAt: null,
+  lastError: null,
+  liveSuccessCount: 0,
+  failureCount: 0,
+};
 
 const DEFAULT_HEADERS: Record<string, string> = {
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
   Accept: "application/json, text/plain, */*",
   "Accept-Language": "en-US,en;q=0.9",
-  Referer: JIJI_BASE,
+  Referer: "https://jiji.co.ke/",
   "X-Requested-With": "XMLHttpRequest",
 };
 
-/**
- * Live API status singleton — read by /api/status and surfaced in the dashboard.
- */
-export const liveApiStatus: LiveApiStatus = {
-  lastMode: "sample",
-  lastCheckedAt: null,
-  lastError: null,
-  liveSuccessCount: 0,
-  sampleFallbackCount: 0,
-};
+const REQUEST_DELAY_MS = 1200; // 1.2s pacing between requests, single-threaded
+let lastRequestAt = 0;
+
+async function pacedDelay() {
+  const elapsed = Date.now() - lastRequestAt;
+  if (elapsed < REQUEST_DELAY_MS) {
+    await new Promise((r) => setTimeout(r, REQUEST_DELAY_MS - elapsed));
+  }
+  lastRequestAt = Date.now();
+}
 
 function recordLive() {
   liveApiStatus.lastMode = "live";
@@ -91,49 +147,201 @@ function recordLive() {
   liveApiStatus.liveSuccessCount++;
 }
 
-function recordSample(reason: string) {
-  liveApiStatus.lastMode = "sample";
+function recordFailure(mode: "blocked" | "error", reason: string) {
+  liveApiStatus.lastMode = mode;
   liveApiStatus.lastCheckedAt = new Date().toISOString();
   liveApiStatus.lastError = reason;
-  liveApiStatus.sampleFallbackCount++;
+  liveApiStatus.failureCount++;
 }
 
 /**
- * Try a live API call. Returns null on any failure so the caller can fall back.
+ * Core fetch with timeout + Cloudflare detection. Returns null on any failure
+ * (does NOT throw — the caller decides how to handle).
  */
-async function tryLiveApi<T>(path: string, timeoutMs = 6000): Promise<T | null> {
+async function tryLiveApi<T>(
+  marketId: string,
+  path: string,
+  opts: { timeoutMs?: number; params?: Record<string, string | number | undefined> } = {}
+): Promise<T | null> {
+  const market = MARKETS.find((m) => m.id === marketId);
+  if (!market) return null;
+
+  await pacedDelay();
+
+  const url = new URL(`${market.baseUrl}/api_web/v1${path}`);
+  if (opts.params) {
+    for (const [k, v] of Object.entries(opts.params)) {
+      if (v != null) url.searchParams.set(k, String(v));
+    }
+  }
+
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
-    const resp = await fetch(`${JIJI_BASE}${API_PREFIX}${path}`, {
+    const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? 8000);
+    const resp = await fetch(url.toString(), {
       headers: DEFAULT_HEADERS,
       signal: controller.signal,
       cache: "no-store",
     });
     clearTimeout(timeout);
+
+    // Cloudflare challenge pages return 403 with HTML body
+    if (resp.status === 403) {
+      const ct = resp.headers.get("content-type") ?? "";
+      if (ct.includes("text/html")) {
+        recordFailure("blocked", "Cloudflare JS challenge (403 + HTML)");
+        return null;
+      }
+    }
     if (!resp.ok) {
-      recordSample(`HTTP ${resp.status}`);
+      recordFailure("error", `HTTP ${resp.status}`);
       return null;
     }
+
     const json = (await resp.json()) as T;
     recordLive();
     return json;
   } catch (e: any) {
-    recordSample(e?.name === "AbortError" ? "timeout" : String(e?.message ?? "network error"));
+    recordFailure(
+      "error",
+      e?.name === "AbortError" ? "timeout" : String(e?.message ?? "network error")
+    );
     return null;
   }
 }
 
 // ---------------------------------------------------------------------------
-// Response shape normalization
+// Field mappers — handle Jiji's response shape variants
 // ---------------------------------------------------------------------------
-// Jiji's real API typically wraps responses in one of these shapes:
-//   { status: "ok", adverts: [...] }           (search results)
-//   { status: "ok", data: { adverts: [...] } } (alt search wrapper)
-//   { status: "ok", advert: {...} }            (single item)
-//   { status: "ok", profile: {...} }           (seller profile)
-// We probe each common location and pick whichever holds an array/object.
-// ---------------------------------------------------------------------------
+
+function num(v: any, fallback = 0): number {
+  if (typeof v === "number") return v;
+  if (typeof v === "string") {
+    const n = parseInt(v.replace(/[^\d-]/g, ""), 10);
+    return isNaN(n) ? fallback : n;
+  }
+  return fallback;
+}
+
+function str(v: any, fallback = ""): string {
+  if (typeof v === "string") return v;
+  if (v == null) return fallback;
+  return String(v);
+}
+
+function dateOrNull(v: any): string | null {
+  if (!v) return null;
+  if (typeof v === "number") {
+    // Unix timestamp (seconds or ms)
+    const ms = v < 1e12 ? v * 1000 : v;
+    return new Date(ms).toISOString();
+  }
+  if (typeof v === "string") {
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  return null;
+}
+
+function parseSeller(raw: any, marketId: string): JijiSeller | null {
+  if (!raw || typeof raw !== "object") return null;
+  const user = raw.user ?? raw.profile ?? raw.seller ?? raw;
+  const numericUserId = num(user.id ?? user.user_id ?? user.numeric_id, 0);
+  if (numericUserId === 0) return null;
+
+  const id = `${marketId}-${numericUserId}`;
+  return {
+    id,
+    marketId,
+    numericUserId,
+    username: str(user.name ?? user.username ?? user.full_name, "Unknown"),
+    location: user.region?.name ?? user.city?.name ?? user.location ?? null,
+    account_age_days: num(user.account_age_days ?? user.days_since_registered, 0),
+    total_items: num(user.total_ads ?? user.total_listings, 0),
+    adverts_count: num(user.adverts_count ?? user.adverts_active ?? user.total_items, 0),
+    feedback_count: num(user.feedback_count ?? user.opinions_count, 0),
+    rating: num(user.rating ?? user.score, 0),
+    hide_phone: Boolean(user.hide_phone ?? user.hidePhone),
+    phone: user.phone ?? user.user_phone ?? user.phone_number ?? user.contact ?? null,
+    verified_badge: Boolean(user.verified ?? user.is_verified ?? user.badge),
+  };
+}
+
+function parseListing(raw: any, marketId: string): JijiListing | null {
+  if (!raw || typeof raw !== "object") return null;
+  const guid = str(raw.id ?? raw.advert_id ?? raw.uuid ?? raw.guid, "");
+  if (!guid) return null;
+
+  const market = MARKETS.find((m) => m.id === marketId);
+  const currency = market?.currency ?? "KES";
+
+  const priceObj = raw.price_obj ?? raw.price ?? {};
+  const price = num(typeof priceObj === "object" ? priceObj.price : priceObj, 0);
+
+  const user = raw.user ?? raw.seller ?? raw.profile ?? {};
+  const seller = parseSeller(user, marketId);
+  if (!seller) return null;
+
+  const imagesRaw: any[] = raw.images ?? raw.photos ?? raw.gallery ?? [];
+  const images: JijiImage[] = imagesRaw.slice(0, 12).map((img: any) => {
+    const url = typeof img === "string" ? img : str(img.url ?? img.path ?? img.src, "");
+    return {
+      url,
+      width: num(img.width, 800),
+      height: num(img.height, 600),
+    };
+  });
+
+  const historyRaw: any[] = raw.price_history ?? raw.history ?? [];
+  const priceHistory = historyRaw.map((h: any) => ({
+    price: num(h.price ?? h.value, price),
+    recorded_at: dateOrNull(h.recorded_at ?? h.date ?? h.at) ?? new Date().toISOString(),
+  }));
+
+  const dateCreated = dateOrNull(raw.date_created ?? raw.created_at);
+  const dateEdited = dateOrNull(raw.date_edited ?? raw.edited_at);
+  const dateModerated = dateOrNull(raw.date_moderated ?? raw.moderated_at);
+
+  // Compute days on market if we have date_created
+  let daysOnMarket = num(raw.days_on_market ?? raw.listing_age_days, 0);
+  if (daysOnMarket === 0 && dateCreated) {
+    daysOnMarket = Math.max(
+      0,
+      Math.floor((Date.now() - new Date(dateCreated).getTime()) / 86400000)
+    );
+  }
+
+  return {
+    id: `${marketId}-${guid}`,
+    marketId,
+    guid,
+    title: str(raw.title ?? raw.advert_title ?? raw.name, "Untitled"),
+    price,
+    currency: typeof priceObj === "object" ? str(priceObj.currency, currency) : currency,
+    category: str(raw.category?.slug ?? raw.category_slug ?? raw.category, "uncategorized"),
+    category_id: raw.category?.id ?? raw.category_id ?? null,
+    condition: str(raw.condition ?? raw.state, "new"),
+    location: seller.location,
+    url: raw.url ? str(raw.url) : `https://${market?.baseUrl.replace("https://", "")}/item/${guid}`,
+    images,
+    views: num(raw.count_views ?? raw.views ?? raw.views_count ?? raw.stats?.views, 0),
+    fav_count: num(raw.fav_count ?? raw.favourites_count ?? raw.favorites_count, 0),
+    days_on_market: daysOnMarket,
+    date_created: dateCreated,
+    date_edited: dateEdited,
+    date_moderated: dateModerated,
+    status: str(raw.status ?? "active", "active"),
+    status_color: raw.status_color ?? null,
+    sold_reported: Boolean(raw.sold_reported ?? raw.sold),
+    can_make_an_offer: Boolean(raw.can_make_an_offer ?? raw.can_offer),
+    abuse_reported: Boolean(raw.abuse_reported ?? raw.reported),
+    is_boost: Boolean(raw.is_boost ?? raw.boosted),
+    paid_info: raw.paid_info ?? null,
+    available_tops_count: num(raw.available_tops_count, 0),
+    seller,
+    price_history: priceHistory,
+  };
+}
 
 function findArray<T = any>(obj: any): T[] | null {
   if (!obj || typeof obj !== "object") return null;
@@ -141,7 +349,6 @@ function findArray<T = any>(obj: any): T[] | null {
   for (const key of ["adverts", "items", "data", "results", "list"]) {
     if (Array.isArray(obj[key])) return obj[key] as T[];
   }
-  // One more level deep
   for (const key of ["data", "result", "payload"]) {
     if (obj[key] && typeof obj[key] === "object") {
       const inner = findArray<T>(obj[key]);
@@ -159,349 +366,245 @@ function findObject(obj: any, keys: string[]): any | null {
   return null;
 }
 
-function num(v: any, fallback = 0): number {
-  if (typeof v === "number") return v;
-  if (typeof v === "string") {
-    const n = parseInt(v.replace(/[^\d]/g, ""), 10);
-    return isNaN(n) ? fallback : n;
-  }
-  return fallback;
-}
-
-function str(v: any, fallback = ""): string {
-  if (typeof v === "string") return v;
-  if (v == null) return fallback;
-  return String(v);
-}
-
-/**
- * Map a raw Jiji advert object → our normalized JijiListing shape.
- * Handles the field name variants Jiji uses (title, advert_title, price_obj, etc).
- */
-function mapAdvert(raw: any): JijiListing | null {
-  if (!raw || typeof raw !== "object") return null;
-  const id = str(raw.id ?? raw.advert_id ?? raw.uuid, "");
-  if (!id) return null;
-
-  const title = str(raw.title ?? raw.advert_title ?? raw.name, "Untitled");
-  const priceObj = raw.price_obj ?? raw.price ?? {};
-  const price = num(typeof priceObj === "object" ? priceObj.price : priceObj, 0);
-  const currency =
-    typeof priceObj === "object" ? str(priceObj.currency ?? "KES", "KES") : "KES";
-
-  const user = raw.user ?? raw.seller ?? raw.profile ?? {};
-  const sellerId = str(user.id ?? user.user_id ?? user.uuid, `seller-${id}`);
-  const seller: JijiSeller = {
-    id: sellerId,
-    username: str(user.name ?? user.username ?? user.full_name, "Unknown"),
-    location: user.region?.name ?? user.city?.name ?? user.location ?? null,
-    account_age_days: num(user.account_age_days ?? user.days_since_registered, 0),
-    total_items: num(user.total_ads ?? user.total_listings ?? user.listings_count, 0),
-    rating: num(user.rating ?? user.score, 0),
-    hide_phone: Boolean(user.hide_phone ?? user.hidePhone),
-    phone: user.phone ?? user.phone_number ?? user.contact ?? null,
-    verified_badge: Boolean(user.verified ?? user.is_verified ?? user.badge),
-  };
-
-  const imagesRaw: any[] = raw.images ?? raw.photos ?? raw.gallery ?? [];
-  const images: JijiImage[] = imagesRaw.slice(0, 12).map((img: any) => {
-    const url = typeof img === "string" ? img : str(img.url ?? img.path ?? img.src, "");
-    return { url, width: num(img.width, 800), height: num(img.height, 600) };
-  });
-
-  const historyRaw: any[] = raw.price_history ?? raw.history ?? [];
-  const priceHistory = historyRaw.map((h: any) => ({
-    price: num(h.price ?? h.value, price),
-    recorded_at: str(h.recorded_at ?? h.date ?? h.at, new Date().toISOString()),
-  }));
-
-  return {
-    id,
-    title,
-    price,
-    currency,
-    category: str(raw.category?.slug ?? raw.category_slug ?? raw.category, "uncategorized"),
-    condition: str(raw.condition ?? raw.state, "new"),
-    location: seller.location,
-    url: raw.url ? str(raw.url) : `${JIJI_BASE}/item/${id}`,
-    images,
-    views: num(raw.views ?? raw.views_count ?? raw.stats?.views, 0),
-    days_on_market: num(raw.days_on_market ?? raw.listing_age_days, 0),
-    seller,
-    price_history: priceHistory,
-  };
-}
-
-/**
- * Normalize a raw search response into our JijiSearchResult.
- */
-function normalizeSearch(raw: any, page: number): JijiSearchResult | null {
-  const arr = findArray<any>(raw);
-  if (!arr) return null;
-  const items = arr
-    .map(mapAdvert)
-    .filter((x): x is JijiListing => x !== null);
-  if (items.length === 0) return null;
-  const total = num(
-    raw.total ?? raw.total_count ?? raw.count ?? raw.data?.total ?? items.length,
-    items.length
-  );
-  return { items, total, page };
-}
-
-/**
- * Normalize a raw single-item response.
- */
-function normalizeItem(raw: any, idHint: string): JijiListing | null {
-  const advert = findObject(raw, ["advert", "item", "data"]) ?? raw;
-  return mapAdvert(advert) ?? sampleListing(idHint);
-}
-
-/**
- * Normalize a raw seller profile response.
- */
-function normalizeSeller(raw: any, idHint: string): JijiSeller | null {
-  const profile = findObject(raw, ["profile", "seller", "data", "user"]) ?? raw;
-  if (!profile || typeof profile !== "object") return null;
-  const seller: JijiSeller = {
-    id: str(profile.id ?? profile.user_id ?? idHint, idHint),
-    username: str(profile.name ?? profile.username ?? profile.full_name, "Unknown"),
-    location: profile.region?.name ?? profile.city?.name ?? profile.location ?? null,
-    account_age_days: num(profile.account_age_days ?? profile.days_since_registered, 0),
-    total_items: num(profile.total_ads ?? profile.total_listings, 0),
-    rating: num(profile.rating ?? profile.score, 0),
-    hide_phone: Boolean(profile.hide_phone ?? profile.hidePhone),
-    phone: profile.phone ?? profile.phone_number ?? profile.contact ?? null,
-    verified_badge: Boolean(profile.verified ?? profile.is_verified),
-  };
-  // Validate that we got something meaningful
-  if (!seller.username || seller.username === "Unknown") return null;
-  return seller;
-}
-
 // ---------------------------------------------------------------------------
-// Client class
+// Public client class
 // ---------------------------------------------------------------------------
 
 export class JijiClient {
-  constructor(private opts: { sampleMode?: boolean } = {}) {}
+  /**
+   * Market census — one request returns all category IDs + live counts.
+   * GET /api_web/v1/categories_counts.json
+   */
+  async getMarketCensus(marketId: MarketId): Promise<MarketCensusEntry[] | null> {
+    const raw = await tryLiveApi<any>(marketId, "/categories_counts.json", {
+      timeoutMs: 10000,
+    });
+    if (!raw) return null;
 
-  async getItem(id: string): Promise<JijiListing | null> {
-    if (!this.opts.sampleMode) {
-      const raw = await tryLiveApi<any>(`/item/${id}/data.json`);
-      if (raw) {
-        const normalized = normalizeItem(raw, id);
-        if (normalized) return normalized;
+    // Response shape: { "3": 306000, "4": 72000, ... } OR { categories: [...] }
+    const entries: MarketCensusEntry[] = [];
+    if (Array.isArray(raw.categories)) {
+      for (const c of raw.categories) {
+        entries.push({
+          catId: num(c.id, 0),
+          slug: str(c.slug, ""),
+          name: c.name,
+          count: num(c.count ?? c.listings_count, 0),
+        });
+      }
+    } else {
+      // Plain object map: { "3-slug": 306000, ... } or { "3": 306000 }
+      for (const [key, val] of Object.entries(raw)) {
+        if (typeof val !== "number") continue;
+        const [idPart, slugPart] = key.split("-");
+        const catId = parseInt(idPart, 10);
+        if (isNaN(catId)) continue;
+        entries.push({
+          catId,
+          slug: slugPart ?? "",
+          count: val,
+        });
       }
     }
-    return sampleListing(id);
+    return entries.filter((e) => e.catId > 0);
   }
 
-  async getSeller(id: string): Promise<JijiSeller | null> {
-    if (!this.opts.sampleMode) {
-      const raw = await tryLiveApi<any>(`/seller/${id}/data.json`);
-      if (raw) {
-        const normalized = normalizeSeller(raw, id);
-        if (normalized) return normalized;
-      }
+  /**
+   * Category feed — first page of listings, follows next_url for pagination.
+   * GET /api_web/v1/listing?category_type={id}-{slug}&ads_per_page=100
+   */
+  async getCategoryFeed(
+    marketId: MarketId,
+    catId: number,
+    catSlug: string,
+    opts: { maxPages?: number } = {}
+  ): Promise<JijiSearchResult | null> {
+    const maxPages = opts.maxPages ?? 1;
+    const allItems: JijiListing[] = [];
+    let nextUrl: string | null = null;
+    let total = 0;
+    let page = 1;
+
+    for (let p = 1; p <= maxPages; p++) {
+      const params: Record<string, string | number | undefined> = {
+        category_type: `${catId}-${catSlug}`,
+        ads_per_page: 100,
+        webp: "true",
+        page: p,
+      };
+      const raw = await tryLiveApi<any>(marketId, "/listing", { params });
+      if (!raw) break;
+
+      const arr = findArray<any>(raw);
+      if (!arr || arr.length === 0) break;
+      const items = arr
+        .map((r) => parseListing(r, marketId))
+        .filter((x): x is JijiListing => x !== null);
+      allItems.push(...items);
+
+      total = num(raw.total ?? raw.total_count ?? raw.count, allItems.length);
+      nextUrl = raw.next_url ?? raw.next ?? null;
+      page = p;
+      if (items.length < 100) break; // last page
     }
-    return sampleSeller(id);
+
+    if (allItems.length === 0) return null;
+    return { items: allItems, total, page, next_url: nextUrl };
   }
 
-  async search(query: string, page = 1): Promise<JijiSearchResult> {
-    if (!this.opts.sampleMode) {
-      const raw = await tryLiveApi<any>(
-        `/search?q=${encodeURIComponent(query)}&page=${page}`
-      );
-      if (raw) {
-        const normalized = normalizeSearch(raw, page);
-        if (normalized) return normalized;
-      }
-    }
-    return sampleSearch(query, page);
-  }
-
-  async getCategoryItems(slug: string, page = 1): Promise<JijiSearchResult> {
-    if (!this.opts.sampleMode) {
-      const raw = await tryLiveApi<any>(
-        `/category/${slug}/items?page=${page}`
-      );
-      if (raw) {
-        const normalized = normalizeSearch(raw, page);
-        if (normalized) return normalized;
-      }
-    }
-    return sampleSearch(slug, page);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Sample data generators (synthetic Jiji-style fallback)
-// ---------------------------------------------------------------------------
-
-const SAMPLE_QUERIES: Record<string, JijiListing[]> = {};
-const SELLER_POOL: Record<string, JijiSeller> = {};
-
-const KENYAN_NAMES = [
-  "JohnKamau254", "WanjiruTech", "NairobiDeals", "MombasaHub", "KisumuGadgets",
-  "NakuruTech", "EldoretMobile", "ThikaTech", "BrianM254", "AishaWanjiru",
-  "TechHubKE", "CityDeals254", "FastFones", "GadgetZone", "MobileHubKE",
-  "CyrilOtieno", "FaithNjeri", "PeterMwangi", "MercyAuma", "DanielKip",
-];
-
-const LOCATIONS = ["Nairobi", "Mombasa", "Kisumu", "Nakuru", "Eldoret", "Thika", "Kiambu", "Machakos"];
-
-const PRODUCT_TEMPLATES = [
-  { title: "iPhone 14 Pro Max 256GB", category: "phones-tablets", basePrice: 135000, cond: "new" },
-  { title: "iPhone 14 128GB", category: "phones-tablets", basePrice: 85000, cond: "new" },
-  { title: "iPhone 13 128GB", category: "phones-tablets", basePrice: 68000, cond: "used" },
-  { title: "iPhone 12 64GB", category: "phones-tablets", basePrice: 52000, cond: "used" },
-  { title: "Samsung Galaxy S23 Ultra", category: "phones-tablets", basePrice: 125000, cond: "new" },
-  { title: "Samsung Galaxy A54", category: "phones-tablets", basePrice: 42000, cond: "new" },
-  { title: "PlayStation 5 Slim", category: "electronics", basePrice: 78000, cond: "new" },
-  { title: "PlayStation 5 Disc Edition", category: "electronics", basePrice: 72000, cond: "used" },
-  { title: "Xbox Series X", category: "electronics", basePrice: 68000, cond: "new" },
-  { title: 'Samsung 55" 4K Smart TV', category: "electronics", basePrice: 65000, cond: "new" },
-  { title: "MacBook Pro M2 13-inch", category: "computers-laptops", basePrice: 185000, cond: "used" },
-  { title: "HP Pavilion 15 i5", category: "computers-laptops", basePrice: 72000, cond: "new" },
-  { title: "Dell XPS 13", category: "computers-laptops", basePrice: 110000, cond: "used" },
-  { title: "AirPods Pro 2nd Gen", category: "electronics", basePrice: 28000, cond: "new" },
-  { title: "Sony WH-1000XM5", category: "electronics", basePrice: 38000, cond: "new" },
-  { title: "iPad Air 5th Gen", category: "electronics", basePrice: 88000, cond: "new" },
-];
-
-function rand(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function slugify(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
-
-function genSeller(id: string): JijiSeller {
-  if (SELLER_POOL[id]) return SELLER_POOL[id];
-  const username = pick(KENYAN_NAMES);
-  const accountAgeDays = rand(2, 1800);
-  const totalItems = accountAgeDays < 30 ? rand(1, 4) : rand(8, 280);
-  // On classifieds sites, most sellers publish their phone for buyers to call.
-  // A small fraction toggle "hide phone" — for those, we still test the
-  // phone-leak signal (whether the API exposes it anyway).
-  const hidePhone = Math.random() < 0.25;
-  const phoneLeaked = hidePhone && Math.random() < 0.5;
-  const phone =
-    !hidePhone || phoneLeaked ? `+2547${rand(10, 99)}${rand(100000, 999999)}` : null;
-  const seller: JijiSeller = {
-    id,
-    username,
-    location: pick(LOCATIONS),
-    account_age_days: accountAgeDays,
-    total_items: totalItems,
-    rating: accountAgeDays < 30 ? Math.random() * 3 : 3.5 + Math.random() * 1.5,
-    hide_phone: hidePhone,
-    phone,
-    verified_badge: accountAgeDays > 180 && totalItems > 30,
-  };
-  SELLER_POOL[id] = seller;
-  return seller;
-}
-
-function genPriceHistory(basePrice: number, daysOnMarket: number, fakeDiscount: boolean) {
-  const history: { price: number; recorded_at: string }[] = [];
-  const now = Date.now();
-  const points = Math.min(daysOnMarket + 1, 12);
-  if (fakeDiscount && daysOnMarket >= 6) {
-    const peak = Math.round(basePrice * 1.25);
-    const current = Math.round(basePrice * 0.92);
-    const peakIdx = Math.floor(points * 0.6);
-    for (let i = 0; i < points; i++) {
-      let price: number;
-      if (i < peakIdx) {
-        price = basePrice + Math.round((peak - basePrice) * (i / peakIdx));
-      } else if (i === peakIdx) {
-        price = peak;
-      } else {
-        price = peak - Math.round((peak - current) * ((i - peakIdx) / (points - peakIdx - 1)));
-      }
-      history.push({
-        price,
-        recorded_at: new Date(now - (points - i) * 24 * 3600 * 1000).toISOString(),
+  /**
+   * Seller inventory — every ad the seller has, with user_phone on each.
+   * GET /api_web/v1/listing?user_id={numeric}&page=N
+   */
+  async getSellerInventory(
+    marketId: MarketId,
+    numericUserId: number,
+    maxPages = 3
+  ): Promise<JijiListing[] | null> {
+    const all: JijiListing[] = [];
+    for (let p = 1; p <= maxPages; p++) {
+      const raw = await tryLiveApi<any>(marketId, "/listing", {
+        params: { user_id: numericUserId, page: p, ads_per_page: 50 },
       });
+      if (!raw) break;
+      const arr = findArray<any>(raw);
+      if (!arr || arr.length === 0) break;
+      const items = arr
+        .map((r) => parseListing(r, marketId))
+        .filter((x): x is JijiListing => x !== null);
+      all.push(...items);
+      if (items.length < 50) break;
     }
-  } else {
-    const smallDrop = Math.random() < 0.3;
-    for (let i = 0; i < points; i++) {
-      let price = basePrice;
-      if (smallDrop && i > points * 0.6) {
-        price = Math.round(basePrice * 0.92);
-      }
-      history.push({
-        price,
-        recorded_at: new Date(now - (points - i) * 24 * 3600 * 1000).toISOString(),
-      });
-    }
+    return all.length > 0 ? all : null;
   }
-  return history;
-}
 
-function sampleListing(idHint?: string): JijiListing {
-  const id = idHint ?? `listing-${rand(100000, 999999)}`;
-  const tpl = pick(PRODUCT_TEMPLATES);
-  const seller = genSeller(`seller-${rand(1, 12)}`);
-  const daysOnMarket = rand(1, 60);
-  const fakeDiscount = Math.random() < 0.18;
-  const currentPrice = fakeDiscount
-    ? Math.round(tpl.basePrice * 0.92)
-    : Math.round(tpl.basePrice * (0.85 + Math.random() * 0.25));
-  const imageCount = rand(1, 8);
-  return {
-    id,
-    title: tpl.title,
-    price: currentPrice,
-    currency: "KES",
-    category: tpl.category,
-    condition: tpl.cond,
-    location: seller.location,
-    url: `${JIJI_BASE}/${tpl.category}/${slugify(tpl.title)}/${id}`,
-    images: Array.from({ length: imageCount }, (_, i) => ({
-      url: `https://cdn.jiji.co.ke/img/${id}-${i}.jpg`,
-      width: 800,
-      height: 600,
-    })),
-    views: rand(20, 4500),
-    days_on_market: daysOnMarket,
-    seller,
-    price_history: genPriceHistory(tpl.basePrice, daysOnMarket, fakeDiscount),
-  };
-}
+  /**
+   * Full item detail — moderation history, abuse flags, paid info.
+   * GET /api_web/v1/item/{guid}/data.json
+   */
+  async getItemDetail(marketId: MarketId, guid: string): Promise<JijiListing | null> {
+    const raw = await tryLiveApi<any>(marketId, `/item/${guid}/data.json`);
+    if (!raw) return null;
+    const advert = findObject(raw, ["advert", "item", "data"]) ?? raw;
+    return parseListing(advert, marketId);
+  }
 
-function sampleSearch(query: string, page: number): JijiSearchResult {
-  const key = `${query}-${page}`;
-  if (SAMPLE_QUERIES[key]) return { items: SAMPLE_QUERIES[key], total: 48, page };
+  /**
+   * Seller profile — adverts_count, feedback_count, dealer detection.
+   * GET /api_web/v1/seller/{id}/data.json
+   */
+  async getSeller(marketId: MarketId, numericUserId: number): Promise<JijiSeller | null> {
+    const raw = await tryLiveApi<any>(marketId, `/seller/${numericUserId}/data.json`);
+    if (!raw) return null;
+    return parseSeller(raw, marketId);
+  }
 
-  const q = query.toLowerCase();
-  const matching = PRODUCT_TEMPLATES.filter(
-    (t) => t.title.toLowerCase().includes(q) || t.category.includes(q)
-  );
-  const pool = matching.length > 0 ? matching : PRODUCT_TEMPLATES;
+  /**
+   * Seller reviews/opinions — test endpoint, may or may not exist.
+   * GET /api_web/v1/opinions/{id}.json
+   */
+  async getOpinions(
+    marketId: MarketId,
+    numericUserId: number
+  ): Promise<any | null> {
+    const raw = await tryLiveApi<any>(marketId, `/opinions/${numericUserId}.json`);
+    return raw;
+  }
 
-  const count = rand(8, 14);
-  const items: JijiListing[] = Array.from({ length: count }, () => sampleListing());
-  items.forEach((it, i) => {
-    if (i < pool.length) {
-      const tpl = pool[i];
-      it.title = tpl.title;
-      it.category = tpl.category;
-      it.condition = tpl.cond;
+  /**
+   * Filtered search — exact query + price filters + sort.
+   * GET /api_web/v1/search?q=...&min_price=...&max_price=...&sort=...&page=1
+   */
+  async search(
+    marketId: MarketId,
+    opts: {
+      q: string;
+      minPrice?: number;
+      maxPrice?: number;
+      sort?: "new" | "price_asc" | "price_desc" | "relevance";
+      page?: number;
     }
+  ): Promise<JijiSearchResult | null> {
+    const sortMap = {
+      new: "new",
+      price_asc: "price:asc",
+      price_desc: "price:desc",
+      relevance: "relevance",
+    };
+    const raw = await tryLiveApi<any>(marketId, "/search", {
+      params: {
+        q: opts.q,
+        min_price: opts.minPrice,
+        max_price: opts.maxPrice,
+        sort: sortMap[opts.sort ?? "relevance"],
+        page: opts.page ?? 1,
+        ads_per_page: 50,
+      },
+    });
+    if (!raw) return null;
+    const arr = findArray<any>(raw);
+    if (!arr) return null;
+    const items = arr
+      .map((r) => parseListing(r, marketId))
+      .filter((x): x is JijiListing => x !== null);
+    if (items.length === 0) return null;
+    return {
+      items,
+      total: num(raw.total ?? raw.total_count, items.length),
+      page: opts.page ?? 1,
+      next_url: raw.next_url ?? raw.next ?? null,
+    };
+  }
+}
+
+/**
+ * Default singleton. Live-only — no synthetic fallback.
+ */
+export const jiji = new JijiClient();
+
+/**
+ * Ensure a Market row exists in the DB.
+ */
+export async function ensureMarket(marketId: MarketId): Promise<void> {
+  const m = MARKETS.find((x) => x.id === marketId);
+  if (!m) return;
+  await db.market.upsert({
+    where: { id: marketId },
+    create: { id: marketId, name: m.name, baseUrl: m.baseUrl },
+    update: {},
   });
-
-  SAMPLE_QUERIES[key] = items;
-  return { items, total: 48, page };
 }
 
-// Default singleton — live mode with sample fallback.
-export const jiji = new JijiClient({ sampleMode: false });
+/**
+ * Persist census data into Category table.
+ */
+export async function persistCensus(
+  marketId: MarketId,
+  entries: MarketCensusEntry[]
+): Promise<number> {
+  await ensureMarket(marketId);
+  let persisted = 0;
+  for (const e of entries) {
+    if (e.catId === 0 || !e.slug) continue;
+    await db.category.upsert({
+      where: { marketId_catId: { marketId, catId: e.catId } },
+      create: {
+        id: `${marketId}-${e.catId}`,
+        marketId,
+        catId: e.catId,
+        slug: e.slug,
+        name: e.name,
+        listingCount: e.count,
+        lastSeenAt: new Date(),
+      },
+      update: {
+        slug: e.slug,
+        name: e.name,
+        listingCount: e.count,
+        lastSeenAt: new Date(),
+      },
+    });
+    persisted++;
+  }
+  return persisted;
+}

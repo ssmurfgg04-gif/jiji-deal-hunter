@@ -1,97 +1,113 @@
 /**
- * Collection Pipeline
+ * Collection Pipeline — LIVE ONLY
  *
- * Orchestrates: search → enrich (seller + price history) → score → store.
- * Records a CollectionRun row so the dashboard can show "last collected X minutes ago".
+ * Flow:
+ *   1. (Optional) Run market census → update Category table with live counts
+ *   2. For each enabled market × top categories:
+ *      a. Fetch category feed (ads_per_page=100, follow next_url)
+ *      b. For each listing: upsert seller, upsert listing, index image hashes
+ *      c. Compute market median, score the deal, store DealScore
+ *   3. Record CollectionRun with stats and log
  *
- * Mode A (API Direct): the default — calls jiji-client which tries live API
- * and falls back to synthetic data if the live endpoint is unreachable.
- *
- * Mode B (Browser Fallback): NOT included here. The operator would wire in
- * DrissionPage/CloudflareBypasser via a separate mini-service. This module
- * is the legitimate, public-API-only path.
+ * No synthetic fallback — if live API is blocked, returns failure summary
+ * and the dashboard shows the "BLOCKED" status badge.
  */
 
 import { db } from "./db";
-import { jiji, type JijiListing } from "./jiji-client";
+import {
+  jiji,
+  ensureMarket,
+  persistCensus,
+  type JijiListing,
+  type JijiSeller,
+  type MarketId,
+  MARKETS,
+} from "./jiji-client";
 import { scoreDeal } from "./deal-scorer";
 import { medianPrice } from "./price-analysis";
+import { indexListingImages, getListingDuplicateSignals } from "./image-hash";
 
-const SEED_QUERIES = [
-  "iphone",
-  "ps5",
-  "samsung",
-  "macbook",
-  "laptop",
-  "tv",
-  "airpods",
-  "ipad",
-];
+// Default: top categories to scrape per market when none specified.
+// Cat IDs are Jiji's numeric IDs (3 = cars in KE etc.) — the actual mapping
+// is discovered via the market census, but these are sane defaults.
+const DEFAULT_TOP_CATEGORIES: Record<MarketId, Array<{ catId: number; slug: string }>> = {
+  ke: [
+    { catId: 3, slug: "vehicles" },
+    { catId: 49, slug: "phones-tablets" },
+    { catId: 89, slug: "electronics" },
+    { catId: 105, slug: "computers-laptops" },
+  ],
+  ng: [
+    { catId: 3, slug: "vehicles" },
+    { catId: 49, slug: "phones-tablets" },
+  ],
+  gh: [{ catId: 3, slug: "vehicles" }],
+  tz: [{ catId: 3, slug: "vehicles" }],
+  ug: [{ catId: 3, slug: "vehicles" }],
+};
 
 export interface CollectionSummary {
   runId: string;
+  marketId: string | null;
   itemsCollected: number;
   itemsUpdated: number;
   fakeDiscounts: number;
   scamsFlagged: number;
   durationMs: number;
-  sourceMode: "api" | "browser";
+  sourceMode: "api";
   log: string[];
+  blocked: boolean; // true if Cloudflare blocked all calls
 }
 
-/**
- * Upsert a seller into the DB.
- */
-async function upsertSeller(seller: JijiListing["seller"]) {
-  // The phone_leak signal: seller.hide_phone=true BUT phone is non-null.
+async function upsertSeller(seller: JijiSeller): Promise<boolean> {
   const phoneLeaked = seller.hide_phone && !!seller.phone;
+  const isDealer = seller.adverts_count > 0 && seller.adverts_count / Math.max(seller.feedback_count, 1) > 50;
   await db.seller.upsert({
     where: { id: seller.id },
     create: {
       id: seller.id,
+      marketId: seller.marketId,
+      numericUserId: seller.numericUserId,
       username: seller.username,
       location: seller.location,
       accountAgeDays: seller.account_age_days,
       totalListings: seller.total_items,
+      advertsCount: seller.adverts_count,
+      feedbackCount: seller.feedback_count,
       rating: seller.rating,
       hidePhone: seller.hide_phone,
       phoneLeaked,
       phone: seller.phone,
       verifiedBadge: seller.verified_badge,
+      isDealer,
     },
     update: {
       username: seller.username,
       location: seller.location,
       accountAgeDays: seller.account_age_days,
       totalListings: seller.total_items,
+      advertsCount: seller.adverts_count,
+      feedbackCount: seller.feedback_count,
       rating: seller.rating,
       hidePhone: seller.hide_phone,
       phoneLeaked,
       phone: seller.phone,
       verifiedBadge: seller.verified_badge,
+      isDealer,
     },
   });
   return phoneLeaked;
 }
 
-/**
- * Upsert a listing + its price history into the DB.
- */
-async function upsertListing(item: JijiListing): Promise<{
-  isNew: boolean;
-  marketMedian: number;
-}> {
-  // Compute market median from existing listings in the same category.
-  // For brand-new categories (first listing), use the listing's own price as a placeholder.
+async function upsertListing(item: JijiListing): Promise<{ isNew: boolean; marketMedian: number }> {
   const sameCategory = await db.listing.findMany({
-    where: { category: item.category },
+    where: { category: item.category, marketId: item.marketId },
     select: { price: true },
   });
   const marketPrices = sameCategory.map((l) => l.price);
   if (marketPrices.length === 0) marketPrices.push(item.price);
   const marketMedian = medianPrice(marketPrices);
 
-  // Check existing price-history count for this listing
   const existing = await db.listing.findUnique({ where: { id: item.id } });
   const isNew = !existing;
 
@@ -99,17 +115,32 @@ async function upsertListing(item: JijiListing): Promise<{
     where: { id: item.id },
     create: {
       id: item.id,
+      marketId: item.marketId,
+      guid: item.guid,
       title: item.title,
       price: item.price,
       currency: item.currency,
       category: item.category,
+      categoryId: item.category_id,
       condition: item.condition,
       location: item.location,
       imageUrl: item.images[0]?.url ?? null,
       imageCount: item.images.length,
       views: item.views,
+      favCount: item.fav_count,
       daysOnMarket: item.days_on_market,
       url: item.url,
+      status: item.status,
+      statusColor: item.status_color,
+      dateCreated: item.date_created ? new Date(item.date_created) : null,
+      dateEdited: item.date_edited ? new Date(item.date_edited) : null,
+      dateModerated: item.date_moderated ? new Date(item.date_moderated) : null,
+      soldReported: item.sold_reported,
+      canMakeOffer: item.can_make_an_offer,
+      abuseReported: item.abuse_reported,
+      isBoost: item.is_boost,
+      paidInfo: item.paid_info ? JSON.stringify(item.paid_info) : null,
+      availableTopsCount: item.available_tops_count,
       sellerId: item.seller.id,
       priceHistory: {
         create: item.price_history.map((p) => ({
@@ -127,13 +158,24 @@ async function upsertListing(item: JijiListing): Promise<{
       imageUrl: item.images[0]?.url ?? null,
       imageCount: item.images.length,
       views: item.views,
+      favCount: item.fav_count,
       daysOnMarket: item.days_on_market,
       url: item.url,
+      status: item.status,
+      statusColor: item.status_color,
+      dateCreated: item.date_created ? new Date(item.date_created) : null,
+      dateEdited: item.date_edited ? new Date(item.date_edited) : null,
+      dateModerated: item.date_moderated ? new Date(item.date_moderated) : null,
+      soldReported: item.sold_reported,
+      canMakeOffer: item.can_make_an_offer,
+      abuseReported: item.abuse_reported,
+      isBoost: item.is_boost,
+      paidInfo: item.paid_info ? JSON.stringify(item.paid_info) : null,
+      availableTopsCount: item.available_tops_count,
       sellerId: item.seller.id,
     },
   });
 
-  // If we found a price history mismatch (new price not the latest), append a new point.
   if (existing) {
     const latestHistory = await db.priceHistory.findFirst({
       where: { listingId: item.id },
@@ -142,11 +184,7 @@ async function upsertListing(item: JijiListing): Promise<{
     const expectedLatest = item.price_history[item.price_history.length - 1]?.price;
     if (latestHistory?.price !== expectedLatest && expectedLatest != null) {
       await db.priceHistory.create({
-        data: {
-          listingId: item.id,
-          price: expectedLatest,
-          recordedAt: new Date(),
-        },
+        data: { listingId: item.id, price: expectedLatest, recordedAt: new Date() },
       });
     }
   }
@@ -154,14 +192,23 @@ async function upsertListing(item: JijiListing): Promise<{
   return { isNew, marketMedian };
 }
 
-/**
- * Score a listing and upsert the DealScore row.
- */
 async function scoreAndStore(
   item: JijiListing,
   marketMedian: number,
   phoneLeaked: boolean
 ) {
+  // Index images FIRST so we can use the duplicate signals as features
+  if (item.images.length > 0) {
+    await indexListingImages({
+      marketId: item.marketId,
+      listingId: item.id,
+      sellerId: item.seller.id,
+      imageUrls: item.images.map((i) => i.url),
+    });
+  }
+
+  const dupSignals = await getListingDuplicateSignals(item.id);
+
   const result = scoreDeal({
     price: item.price,
     marketMedian,
@@ -176,6 +223,21 @@ async function scoreAndStore(
       price: p.price,
       recorded_at: p.recorded_at,
     })),
+    dateCreated: item.date_created,
+    dateEdited: item.date_edited,
+    dateModerated: item.date_moderated,
+    soldReported: item.sold_reported,
+    status: item.status,
+    canMakeOffer: item.can_make_an_offer,
+    abuseReported: item.abuse_reported,
+    isBoost: item.is_boost,
+    availableTopsCount: item.available_tops_count,
+    advertsCount: item.seller.adverts_count,
+    feedbackCount: item.seller.feedback_count,
+    imageDuplicateCount: dupSignals.imageDuplicateCount,
+    crossSellerCount: dupSignals.crossSellerCount,
+    relistCount: dupSignals.relistCount,
+    crossMarketCount: dupSignals.crossMarketCount,
   });
 
   await db.dealScore.upsert({
@@ -192,6 +254,15 @@ async function scoreAndStore(
       hasFakeDiscount: result.hasFakeDiscount,
       claimedDiscount: result.claimedDiscount,
       realDiscount: result.realDiscount,
+      editChurn24h: result.editChurn24h,
+      moderationChurn24h: result.moderationChurn24h,
+      isGhostListing: result.isGhostListing,
+      abuseFlagged: result.abuseFlagged,
+      isBoosted: result.isBoosted,
+      dealerRatio: result.dealerRatio,
+      crossMarketBroker: result.crossMarketBroker,
+      imageDuplicateCount: result.imageDuplicateCount,
+      relistCount: result.relistCount,
       factors: JSON.stringify(result.factors),
     },
     update: {
@@ -205,6 +276,15 @@ async function scoreAndStore(
       hasFakeDiscount: result.hasFakeDiscount,
       claimedDiscount: result.claimedDiscount,
       realDiscount: result.realDiscount,
+      editChurn24h: result.editChurn24h,
+      moderationChurn24h: result.moderationChurn24h,
+      isGhostListing: result.isGhostListing,
+      abuseFlagged: result.abuseFlagged,
+      isBoosted: result.isBoosted,
+      dealerRatio: result.dealerRatio,
+      crossMarketBroker: result.crossMarketBroker,
+      imageDuplicateCount: result.imageDuplicateCount,
+      relistCount: result.relistCount,
       factors: JSON.stringify(result.factors),
     },
   });
@@ -212,54 +292,118 @@ async function scoreAndStore(
   return result;
 }
 
-/**
- * Run a full collection sweep. Iterates seed queries, upserts listings,
- * computes deal scores, and updates the CollectionRun row.
- */
-export async function runCollection(opts?: {
-  queries?: string[];
-  sourceMode?: "api" | "browser";
-}): Promise<CollectionSummary> {
+export interface CollectionOptions {
+  marketId?: MarketId; // null = all enabled markets
+  queries?: string[]; // search-based collection (uses /search endpoint)
+  categories?: Array<{ catId: number; slug: string }>; // category-based (default)
+  maxPagesPerCategory?: number; // default 1 (100 items per page)
+  runCensus?: boolean; // refresh market census first
+}
+
+export async function runCollection(opts: CollectionOptions = {}): Promise<CollectionSummary> {
   const log: string[] = [];
   const startedAt = Date.now();
-  const queries = opts?.queries ?? SEED_QUERIES;
-  const sourceMode = opts?.sourceMode ?? "api";
+
+  const marketIds: MarketId[] = opts.marketId ? [opts.marketId] : (MARKETS.map((m) => m.id) as MarketId[]);
 
   const run = await db.collectionRun.create({
     data: {
-      sourceMode,
+      marketId: opts.marketId ?? null,
+      sourceMode: "api",
       status: "running",
     },
   });
-  log.push(`Collection run ${run.id} started (${queries.length} queries, mode=${sourceMode})`);
+  log.push(`Collection run ${run.id} started (markets: ${marketIds.join(", ")})`);
 
   let itemsCollected = 0;
   let itemsUpdated = 0;
   let fakeDiscounts = 0;
   let scamsFlagged = 0;
+  let blockedCount = 0;
+  let totalApiCalls = 0;
 
   try {
-    for (const q of queries) {
-      log.push(`Searching: "${q}"`);
-      const result = await jiji.search(q, 1);
-      for (const item of result.items) {
-        try {
-          await upsertSeller(item.seller);
-          const { isNew, marketMedian } = await upsertListing(item);
-          if (isNew) itemsCollected++;
-          else itemsUpdated++;
+    for (const marketId of marketIds) {
+      await ensureMarket(marketId);
+      log.push(`[${marketId}] Starting collection`);
 
-          const phoneLeaked = item.seller.hide_phone && !!item.seller.phone;
-          const score = await scoreAndStore(item, marketMedian, phoneLeaked);
-          if (score.hasFakeDiscount) fakeDiscounts++;
-          if (score.classification === "SCAM") scamsFlagged++;
-        } catch (e: any) {
-          log.push(`  ! Failed to upsert ${item.id}: ${e?.message ?? "unknown"}`);
+      // Step 1: market census (optional but recommended)
+      if (opts.runCensus !== false) {
+        log.push(`[${marketId}] Fetching market census...`);
+        const census = await jiji.getMarketCensus(marketId);
+        if (census) {
+          const persisted = await persistCensus(marketId, census);
+          log.push(`[${marketId}] Census: ${persisted} categories persisted`);
+          await db.market.update({
+            where: { id: marketId },
+            data: { lastCensusAt: new Date() },
+          });
+        } else {
+          blockedCount++;
+          log.push(`[${marketId}] Census BLOCKED (Cloudflare or network)`);
         }
       }
-      log.push(`  ${result.items.length} items processed for "${q}"`);
+
+      // Step 2: query-based collection
+      if (opts.queries && opts.queries.length > 0) {
+        for (const q of opts.queries) {
+          log.push(`[${marketId}] Searching: "${q}"`);
+          const result = await jiji.search(marketId, { q });
+          totalApiCalls++;
+          if (!result) {
+            blockedCount++;
+            log.push(`[${marketId}] Search BLOCKED for "${q}"`);
+            continue;
+          }
+          for (const item of result.items) {
+            try {
+              await upsertSeller(item.seller);
+              const phoneLeaked = item.seller.hide_phone && !!item.seller.phone;
+              const { isNew, marketMedian } = await upsertListing(item);
+              if (isNew) itemsCollected++;
+              else itemsUpdated++;
+              const score = await scoreAndStore(item, marketMedian, phoneLeaked);
+              if (score.hasFakeDiscount) fakeDiscounts++;
+              if (score.classification === "SCAM") scamsFlagged++;
+            } catch (e: any) {
+              log.push(`  ! Failed to upsert ${item.id}: ${e?.message ?? "unknown"}`);
+            }
+          }
+          log.push(`[${marketId}] "${q}": ${result.items.length} items`);
+        }
+      } else {
+        // Step 2 alt: category-based collection
+        const cats = opts.categories ?? DEFAULT_TOP_CATEGORIES[marketId] ?? [];
+        const maxPages = opts.maxPagesPerCategory ?? 1;
+        for (const cat of cats) {
+          log.push(`[${marketId}] Category ${cat.catId}-${cat.slug} (max ${maxPages} page(s))`);
+          const result = await jiji.getCategoryFeed(marketId, cat.catId, cat.slug, { maxPages });
+          totalApiCalls++;
+          if (!result) {
+            blockedCount++;
+            log.push(`[${marketId}] Category ${cat.slug} BLOCKED`);
+            continue;
+          }
+          for (const item of result.items) {
+            try {
+              await upsertSeller(item.seller);
+              const phoneLeaked = item.seller.hide_phone && !!item.seller.phone;
+              const { isNew, marketMedian } = await upsertListing(item);
+              if (isNew) itemsCollected++;
+              else itemsUpdated++;
+              const score = await scoreAndStore(item, marketMedian, phoneLeaked);
+              if (score.hasFakeDiscount) fakeDiscounts++;
+              if (score.classification === "SCAM") scamsFlagged++;
+            } catch (e: any) {
+              log.push(`  ! Failed to upsert ${item.id}: ${e?.message ?? "unknown"}`);
+            }
+          }
+          log.push(`[${marketId}] Category ${cat.slug}: ${result.items.length} items`);
+        }
+      }
     }
 
+    const blocked = blockedCount > 0 && totalApiCalls === blockedCount;
     await db.collectionRun.update({
       where: { id: run.id },
       data: {
@@ -273,8 +417,21 @@ export async function runCollection(opts?: {
       },
     });
     log.push(
-      `Collection completed: ${itemsCollected} new, ${itemsUpdated} updated, ${fakeDiscounts} fake discounts, ${scamsFlagged} scams flagged`
+      `Collection completed: ${itemsCollected} new, ${itemsUpdated} updated, ${fakeDiscounts} fake discounts, ${scamsFlagged} scams, ${blockedCount}/${totalApiCalls} calls blocked`
     );
+
+    return {
+      runId: run.id,
+      marketId: opts.marketId ?? null,
+      itemsCollected,
+      itemsUpdated,
+      fakeDiscounts,
+      scamsFlagged,
+      durationMs: Date.now() - startedAt,
+      sourceMode: "api",
+      log,
+      blocked,
+    };
   } catch (e: any) {
     log.push(`FATAL: ${e?.message ?? "unknown"}`);
     await db.collectionRun.update({
@@ -283,30 +440,13 @@ export async function runCollection(opts?: {
     });
     throw e;
   }
-
-  return {
-    runId: run.id,
-    itemsCollected,
-    itemsUpdated,
-    fakeDiscounts,
-    scamsFlagged,
-    durationMs: Date.now() - startedAt,
-    sourceMode,
-    log,
-  };
 }
 
-/**
- * Check whether the database is empty (first run).
- */
 export async function isDatabaseEmpty(): Promise<boolean> {
   const count = await db.listing.count();
   return count === 0;
 }
 
-/**
- * Get the most recent completed collection run for the dashboard header.
- */
 export async function getLastRun() {
   return db.collectionRun.findFirst({
     where: { status: "completed" },

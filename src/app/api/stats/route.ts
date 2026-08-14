@@ -5,14 +5,7 @@ import { getLastRun } from "@/lib/collector";
 /**
  * GET /api/stats
  *
- * Returns dashboard header stats:
- *   - total listings
- *   - great deals count
- *   - fake discounts flagged
- *   - scams flagged
- *   - avg discount among discounted listings
- *   - last collection run info
- *   - per-category breakdown
+ * Dashboard header stats — now includes recon-derived scam signals.
  */
 export async function GET() {
   const total = await db.listing.count();
@@ -22,7 +15,28 @@ export async function GET() {
   const scams = await db.dealScore.count({ where: { classification: "SCAM" } });
   const fakeDiscounts = await db.dealScore.count({ where: { hasFakeDiscount: true } });
 
-  // Avg real discount among listings with a real discount > 0
+  // Recon-derived signals
+  const ghostListings = await db.dealScore.count({ where: { isGhostListing: true } });
+  const abuseFlagged = await db.dealScore.count({ where: { abuseFlagged: true } });
+  const editChurn = await db.dealScore.count({ where: { editChurn24h: true } });
+  const moderationChurn = await db.dealScore.count({ where: { moderationChurn24h: true } });
+  const crossMarketBrokers = await db.dealScore.count({ where: { crossMarketBroker: true } });
+  const dealers = await db.seller.count({ where: { isDealer: true } });
+
+  // Image-hash stats
+  const totalHashes = await db.imageHash.count();
+  // Get all distinct hashes, then filter to duplicates client-side
+  // (Prisma groupBy having-clause is finicky across versions.)
+  const allHashes = await db.imageHash.findMany({
+    select: { hash: true, listingId: true },
+    distinct: ["hash", "listingId"],
+  });
+  const hashCounts = new Map<string, number>();
+  for (const h of allHashes) {
+    hashCounts.set(h.hash, (hashCounts.get(h.hash) ?? 0) + 1);
+  }
+  const dupHashCount = Array.from(hashCounts.values()).filter((c) => c > 1).length;
+
   const discountRows = await db.dealScore.findMany({
     where: { realDiscount: { gt: 0 } },
     select: { realDiscount: true },
@@ -32,9 +46,14 @@ export async function GET() {
       ? discountRows.reduce((a, b) => a + (b.realDiscount ?? 0), 0) / discountRows.length
       : 0;
 
-  // Category breakdown
   const byCategory = await db.listing.groupBy({
     by: ["category"],
+    _count: { id: true },
+    orderBy: { _count: { id: "desc" } },
+  });
+
+  const byMarket = await db.listing.groupBy({
+    by: ["marketId"],
     _count: { id: true },
     orderBy: { _count: { id: "desc" } },
   });
@@ -49,7 +68,19 @@ export async function GET() {
     scams,
     fakeDiscounts,
     avgDiscount: Number(avgDiscount.toFixed(3)),
+    // Recon-derived
+    ghostListings,
+    abuseFlagged,
+    editChurn,
+    moderationChurn,
+    crossMarketBrokers,
+    dealers,
+    imageHashes: {
+      total: totalHashes,
+      duplicates: dupHashCount,
+    },
     categories: byCategory.map((c) => ({ slug: c.category, count: c._count.id })),
+    markets: byMarket.map((m) => ({ id: m.marketId, count: m._count.id })),
     lastRun: lastRun
       ? {
           id: lastRun.id,

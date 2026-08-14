@@ -27,13 +27,19 @@ import {
   AlertTriangle,
   ArrowDown,
   ArrowUp,
+  Building2,
   Clock,
   Crosshair,
+  Eye,
+  Ghost,
   Gauge,
+  Image as ImageIcon,
+  MapPin,
   Pause,
   Phone,
   Play,
   Radio,
+  Search,
   Server,
   ShieldAlert,
   ShieldCheck,
@@ -54,9 +60,12 @@ import {
 import { formatDistanceToNow } from "date-fns";
 
 type DealClass = "GREAT" | "FAIR" | "RISKY" | "SCAM";
+type MarketId = "ke" | "ng" | "gh" | "tz" | "ug";
 
 interface EnrichedListing {
   id: string;
+  marketId: string;
+  guid: string;
   title: string;
   price: number;
   currency: string;
@@ -66,20 +75,36 @@ interface EnrichedListing {
   imageUrl: string | null;
   imageCount: number;
   views: number;
+  favCount: number;
   daysOnMarket: number;
   url: string | null;
   collectedAt: string;
+  status: string;
+  statusColor: string | null;
+  dateCreated: string | null;
+  dateEdited: string | null;
+  dateModerated: string | null;
+  soldReported: boolean;
+  canMakeOffer: boolean;
+  abuseReported: boolean;
+  isBoost: boolean;
+  availableTopsCount: number;
   seller: {
     id: string;
+    marketId: string;
+    numericUserId: number;
     username: string;
     location: string | null;
     accountAgeDays: number;
     totalListings: number;
+    advertsCount: number;
+    feedbackCount: number;
     rating: number;
     hidePhone: boolean;
     phoneLeaked: boolean;
     phone: string | null;
     verifiedBadge: boolean;
+    isDealer: boolean;
   };
   marketMedian: number;
   score: {
@@ -93,6 +118,15 @@ interface EnrichedListing {
     hasFakeDiscount: boolean;
     claimedDiscount: number | null;
     realDiscount: number | null;
+    editChurn24h: boolean;
+    moderationChurn24h: boolean;
+    isGhostListing: boolean;
+    abuseFlagged: boolean;
+    isBoosted: boolean;
+    dealerRatio: number;
+    crossMarketBroker: boolean;
+    imageDuplicateCount: number;
+    relistCount: number;
   } | null;
 }
 
@@ -104,7 +138,15 @@ interface StatsResponse {
   scams: number;
   fakeDiscounts: number;
   avgDiscount: number;
+  ghostListings: number;
+  abuseFlagged: number;
+  editChurn: number;
+  moderationChurn: number;
+  crossMarketBrokers: number;
+  dealers: number;
+  imageHashes: { total: number; duplicates: number };
   categories: { slug: string; count: number }[];
+  markets: { id: string; count: number }[];
   lastRun: {
     id: string;
     startedAt: string;
@@ -134,16 +176,27 @@ interface SchedulerStatus {
 }
 
 interface LiveApiStatus {
-  lastMode: "live" | "sample";
+  lastMode: "live" | "blocked" | "error";
   lastCheckedAt: string | null;
   lastError: string | null;
   liveSuccessCount: number;
-  sampleFallbackCount: number;
+  failureCount: number;
+}
+
+interface MarketInfo {
+  id: MarketId;
+  name: string;
+  baseUrl: string;
+  currency: string;
+  enabled: boolean;
+  lastCensusAt: string | null;
+  listingsTracked: number;
 }
 
 interface SystemStatus {
   liveApi: LiveApiStatus;
   proxyPool: { working: number; total: number };
+  markets: MarketInfo[];
 }
 
 interface HistoryResponse {
@@ -159,6 +212,14 @@ interface HistoryResponse {
   score: any;
 }
 
+const MARKET_LABELS: Record<MarketId, string> = {
+  ke: "🇰🇪 Kenya",
+  ng: "🇳🇬 Nigeria",
+  gh: "🇬🇭 Ghana",
+  tz: "🇹🇿 Tanzania",
+  ug: "🇺🇬 Uganda",
+};
+
 const classColor: Record<DealClass, string> = {
   GREAT: "bg-emerald-100 text-emerald-700 border-emerald-200",
   FAIR: "bg-amber-100 text-amber-700 border-amber-200",
@@ -167,8 +228,8 @@ const classColor: Record<DealClass, string> = {
 };
 
 function formatKES(n: number): string {
-  if (n >= 1000) return `KES ${(n / 1000).toFixed(0)}K`;
-  return `KES ${n}`;
+  if (n >= 1000) return `${(n / 1000).toFixed(0)}K`;
+  return `${n}`;
 }
 
 function pct(n: number | null | undefined, digits = 0): string {
@@ -201,18 +262,28 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [collecting, setCollecting] = useState(false);
   const [seedingProxies, setSeedingProxies] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryResponse | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [now, setNow] = useState(Date.now());
 
-  // Filters
+  // Live search bar state
+  const [searchQ, setSearchQ] = useState("");
+  const [searchMarket, setSearchMarket] = useState<MarketId>("ke");
+  const [searchMinPrice, setSearchMinPrice] = useState("");
+  const [searchMaxPrice, setSearchMaxPrice] = useState("");
+  const [searchSort, setSearchSort] = useState<"new" | "price_asc" | "price_desc" | "relevance">("relevance");
+
+  // DB listing filters
   const [q, setQ] = useState("");
+  const [marketFilter, setMarketFilter] = useState<string>("all");
   const [category, setCategory] = useState("all");
   const [classification, setClassification] = useState("all");
   const [sort, setSort] = useState("-deal");
+  const [filterMode, setFilterMode] = useState<"abuse" | "ghost" | "broker" | null>(null);
 
-  // Tick "now" every 30s so the "next collection in X" countdown updates
+  // Tick "now" every 30s
   useEffect(() => {
     const i = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(i);
@@ -223,18 +294,22 @@ export default function Home() {
     try {
       const params = new URLSearchParams();
       if (q) params.set("q", q);
+      if (marketFilter !== "all") params.set("marketId", marketFilter);
       if (category !== "all") params.set("category", category);
       if (classification !== "all") params.set("class", classification);
       params.set("sort", sort);
+      if (filterMode === "abuse") params.set("abuse", "1");
+      if (filterMode === "ghost") params.set("ghost", "1");
+      if (filterMode === "broker") params.set("broker", "1");
       const resp = await fetch(`/api/listings?${params.toString()}`);
       const data = await resp.json();
       setListings(data.listings ?? []);
-    } catch (e) {
+    } catch {
       toast.error("Failed to load listings");
     } finally {
       setLoading(false);
     }
-  }, [q, category, classification, sort]);
+  }, [q, marketFilter, category, classification, sort, filterMode]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -306,8 +381,7 @@ export default function Home() {
         toast.error(seedData.error ?? "Seed failed");
         return;
       }
-      toast.info(`Seeded ${seedData.added} default proxies. Validating...`);
-
+      toast.info(`Seeded ${seedData.added} proxies. Validating...`);
       const valResp = await fetch("/api/proxies", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -316,7 +390,7 @@ export default function Home() {
       const valData = await valResp.json();
       if (valData.ok) {
         toast.success(
-          `Validated ${valData.tested} proxies — ${valData.working} working against Jiji.`
+          `Validated ${valData.tested} — ${valData.working} working against Jiji.`
         );
         await fetchSystemStatus();
       } else {
@@ -335,25 +409,66 @@ export default function Home() {
       const resp = await fetch("/api/collect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ marketId: marketFilter !== "all" ? marketFilter : undefined }),
       });
       const data = await resp.json();
       if (data.ok) {
         toast.success(
           `Collected ${data.summary.itemsCollected} new, ${data.summary.itemsUpdated} updated. ${data.summary.fakeDiscounts} fake discounts, ${data.summary.scamsFlagged} scams flagged.`
         );
-        await Promise.all([fetchListings(), fetchStats()]);
+        await Promise.all([fetchListings(), fetchStats(), fetchSystemStatus()]);
+      } else if (data.blocked) {
+        toast.error("Live API blocked by Cloudflare. Deploy to a server with residential IP or add proxies.");
+        await fetchSystemStatus();
       } else {
         toast.error(data.error ?? "Collection failed");
       }
-    } catch (e) {
+    } catch {
       toast.error("Collection failed");
     } finally {
       setCollecting(false);
     }
-  }, [fetchListings, fetchStats]);
+  }, [fetchListings, fetchStats, fetchSystemStatus, marketFilter]);
 
-  // Initial load — and auto-collect if DB is empty
+  const runLiveSearch = useCallback(async () => {
+    if (!searchQ.trim()) {
+      toast.error("Enter a search query first");
+      return;
+    }
+    setSearching(true);
+    try {
+      const resp = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          q: searchQ.trim(),
+          marketId: searchMarket,
+          minPrice: searchMinPrice ? Number(searchMinPrice) : undefined,
+          maxPrice: searchMaxPrice ? Number(searchMaxPrice) : undefined,
+          sort: searchSort,
+          persist: true,
+        }),
+      });
+      const data = await resp.json();
+      if (data.ok) {
+        toast.success(
+          `Found ${data.count} listings on Jiji ${searchMarket.toUpperCase()}. Persisted ${data.persisted} to DB.`
+        );
+        await Promise.all([fetchListings(), fetchStats(), fetchSystemStatus()]);
+      } else if (data.blocked) {
+        toast.error("Live API blocked by Cloudflare. Deploy to a server with residential IP.");
+        await fetchSystemStatus();
+      } else {
+        toast.error(data.error ?? "Search failed");
+      }
+    } catch {
+      toast.error("Search failed");
+    } finally {
+      setSearching(false);
+    }
+  }, [searchQ, searchMarket, searchMinPrice, searchMaxPrice, searchSort, fetchListings, fetchStats, fetchSystemStatus]);
+
+  // Initial load
   useEffect(() => {
     (async () => {
       const [statsResp, schedResp, statusResp] = await Promise.all([
@@ -369,39 +484,16 @@ export default function Home() {
       setStats(statsData as StatsResponse);
       setScheduler(schedData as SchedulerStatus);
       setSystemStatus(statusData as SystemStatus);
-      if ((statsData as StatsResponse).total === 0 && !collecting) {
-        setCollecting(true);
-        try {
-          const resp = await fetch("/api/collect", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({}),
-          });
-          const data = await resp.json();
-          if (data.ok) {
-            toast.success(
-              `Initial collection done: ${data.summary.itemsCollected} new listings. ${data.summary.fakeDiscounts} fake discounts, ${data.summary.scamsFlagged} scams flagged.`
-            );
-          } else {
-            toast.error(data.error ?? "Initial collection failed");
-          }
-        } catch {
-          toast.error("Initial collection failed");
-        } finally {
-          setCollecting(false);
-        }
-      }
       await fetchListings();
-      await fetchStats();
     })();
      
   }, []);
 
-  // Re-fetch listings when filters change (debounced search)
+  // Re-fetch listings when filters change (debounced)
   useEffect(() => {
     const t = setTimeout(() => fetchListings(), 250);
     return () => clearTimeout(t);
-  }, [q, category, classification, sort, fetchListings]);
+  }, [q, marketFilter, category, classification, sort, filterMode, fetchListings]);
 
   // Auto-refresh stats + scheduler + status every 60s
   useEffect(() => {
@@ -435,39 +527,6 @@ export default function Home() {
     [expandedRow]
   );
 
-  const statCards = useMemo(() => {
-    if (!stats) return [];
-    return [
-      {
-        label: "Total Listings",
-        value: stats.total.toLocaleString(),
-        icon: ShoppingBag,
-        tone: "neutral" as const,
-      },
-      {
-        label: "Great Deals",
-        value: stats.greatDeals.toLocaleString(),
-        sub: `${stats.fairDeals} fair`,
-        icon: Gauge,
-        tone: "good" as const,
-      },
-      {
-        label: "Fake Discounts",
-        value: stats.fakeDiscounts.toLocaleString(),
-        sub: `avg real ${pct(stats.avgDiscount)} off`,
-        icon: TrendingDown,
-        tone: "warn" as const,
-      },
-      {
-        label: "Scams Flagged",
-        value: stats.scams.toLocaleString(),
-        sub: `${stats.riskyDeals} risky`,
-        icon: ShieldAlert,
-        tone: "danger" as const,
-      },
-    ];
-  }, [stats]);
-
   const nextRunIn = useMemo(() => {
     if (!scheduler?.nextRunAt) return null;
     const ms = new Date(scheduler.nextRunAt).getTime() - now;
@@ -478,11 +537,24 @@ export default function Home() {
     return `${secs}s`;
   }, [scheduler, now]);
 
+  const statCards = useMemo(() => {
+    if (!stats) return [];
+    return [
+      { label: "Total Listings", value: stats.total.toLocaleString(), icon: ShoppingBag, tone: "neutral" as const },
+      { label: "Great Deals", value: stats.greatDeals.toLocaleString(), sub: `${stats.fairDeals} fair`, icon: Gauge, tone: "good" as const },
+      { label: "Fake Discounts", value: stats.fakeDiscounts.toLocaleString(), sub: `avg real ${pct(stats.avgDiscount)} off`, icon: TrendingDown, tone: "warn" as const },
+      { label: "Scams Flagged", value: stats.scams.toLocaleString(), sub: `${stats.riskyDeals} risky`, icon: ShieldAlert, tone: "danger" as const },
+      { label: "Ghost Listings", value: stats.ghostListings.toLocaleString(), sub: "sold but still active", icon: Ghost, tone: "danger" as const },
+      { label: "Abuse Flagged", value: stats.abuseFlagged.toLocaleString(), sub: "previously reported", icon: AlertTriangle, tone: "danger" as const },
+      { label: "Cross-Market Brokers", value: stats.crossMarketBrokers.toLocaleString(), sub: "same image across markets", icon: Building2, tone: "danger" as const },
+      { label: "Detected Dealers", value: stats.dealers.toLocaleString(), sub: "adverts/feedback > 50", icon: Users, tone: "warn" as const },
+    ];
+  }, [stats]);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <header className="border-b bg-card sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="size-9 rounded-lg bg-foreground text-background flex items-center justify-center">
               <Crosshair className="size-5" />
@@ -490,44 +562,37 @@ export default function Home() {
             <div>
               <h1 className="text-xl font-semibold tracking-tight">Jiji Deal Hunter</h1>
               <p className="text-xs text-muted-foreground">
-                API-first collector · fake-discount detector · XGBoost-style deal scoring
+                Multi-market · API-first · image-hash dedup · recon-derived scam signals
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Live API status */}
             {systemStatus?.liveApi && (
               <Badge
                 variant="outline"
                 className={`gap-1.5 font-normal ${
                   systemStatus.liveApi.lastMode === "live"
                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                    : "bg-amber-50 text-amber-700 border-amber-200"
+                    : systemStatus.liveApi.lastMode === "blocked"
+                      ? "bg-red-50 text-red-700 border-red-200"
+                      : "bg-amber-50 text-amber-700 border-amber-200"
                 }`}
-                title={
-                  systemStatus.liveApi.lastError
-                    ? `Last error: ${systemStatus.liveApi.lastError}`
-                    : "Live API status"
-                }
+                title={systemStatus.liveApi.lastError ?? "Live API status"}
               >
-                {systemStatus.liveApi.lastMode === "live" ? (
-                  <Radio className="size-3" />
-                ) : (
-                  <AlertTriangle className="size-3" />
-                )}
-                {systemStatus.liveApi.lastMode === "live" ? "LIVE API" : "SAMPLE"}
+                {systemStatus.liveApi.lastMode === "live" ? <Radio className="size-3" /> : <AlertTriangle className="size-3" />}
+                {systemStatus.liveApi.lastMode === "live"
+                  ? "LIVE API"
+                  : systemStatus.liveApi.lastMode === "blocked"
+                    ? "BLOCKED"
+                    : "ERROR"}
               </Badge>
             )}
-            {/* Scheduler status */}
             {scheduler && (
               <Badge variant="outline" className="gap-1.5 font-normal">
                 <Clock className="size-3" />
-                {scheduler.enabled
-                  ? nextRunAtLabel(scheduler, nextRunIn)
-                  : "Paused"}
+                {scheduler.enabled ? nextRunAtLabel(scheduler, nextRunIn) : "Paused"}
               </Badge>
             )}
-            {/* Proxy pool status */}
             {systemStatus?.proxyPool && (
               <Badge
                 variant="outline"
@@ -536,25 +601,18 @@ export default function Home() {
                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                     : "bg-muted"
                 }`}
-                title="Working / Total proxies in pool"
               >
                 <Server className="size-3" />
                 {systemStatus.proxyPool.working}/{systemStatus.proxyPool.total} proxies
               </Badge>
             )}
-            {/* Pause/resume + trigger */}
             {scheduler && (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => toggleScheduler(scheduler.enabled ? "pause" : "resume")}
-                title={scheduler.enabled ? "Pause auto-collection" : "Resume auto-collection"}
               >
-                {scheduler.enabled ? (
-                  <Pause className="size-3.5" />
-                ) : (
-                  <Play className="size-3.5" />
-                )}
+                {scheduler.enabled ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
                 {scheduler.enabled ? "Pause" : "Resume"}
               </Button>
             )}
@@ -563,26 +621,81 @@ export default function Home() {
               variant="outline"
               onClick={seedDefaultsAndValidate}
               disabled={seedingProxies}
-              title="Seed default proxies and validate against Jiji"
             >
               <Wifi className="size-3.5" />
-              {seedingProxies ? "Working..." : "Seed Proxies"}
+              {seedingProxies ? "..." : "Proxies"}
             </Button>
             <Button onClick={runCollection} disabled={collecting} size="sm">
               <Activity className="size-3.5" />
-              {collecting ? "Collecting..." : "Run Collection Now"}
+              {collecting ? "Collecting..." : "Collect"}
             </Button>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6 flex-1 space-y-6">
+        {/* Live Search Bar — query Jiji directly with price filters */}
+        <section className="rounded-xl border bg-card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Search className="size-4 text-muted-foreground" />
+            <h2 className="text-sm font-medium">Live Jiji Search</h2>
+            <span className="text-xs text-muted-foreground">
+              Query the live API directly — exact match, price filters, sort. Results are persisted to the DB.
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
+            <Input
+              placeholder="Search Jiji (e.g. iphone 14, toyota vitz, ps5)..."
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") runLiveSearch(); }}
+              className="md:col-span-4"
+            />
+            <Select value={searchMarket} onValueChange={(v) => setSearchMarket(v as MarketId)}>
+              <SelectTrigger className="md:col-span-2">
+                <SelectValue placeholder="Market" />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(MARKET_LABELS) as MarketId[]).map((m) => (
+                  <SelectItem key={m} value={m}>{MARKET_LABELS[m]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              placeholder="Min price"
+              type="number"
+              value={searchMinPrice}
+              onChange={(e) => setSearchMinPrice(e.target.value)}
+              className="md:col-span-2"
+            />
+            <Input
+              placeholder="Max price"
+              type="number"
+              value={searchMaxPrice}
+              onChange={(e) => setSearchMaxPrice(e.target.value)}
+              className="md:col-span-2"
+            />
+            <Select value={searchSort} onValueChange={(v) => setSearchSort(v as any)}>
+              <SelectTrigger className="md:col-span-1">
+                <SelectValue placeholder="Sort" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="relevance">Relevance</SelectItem>
+                <SelectItem value="new">Newest</SelectItem>
+                <SelectItem value="price_asc">Price ↑</SelectItem>
+                <SelectItem value="price_desc">Price ↓</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={runLiveSearch} disabled={searching} className="md:col-span-1">
+              {searching ? "..." : "Go"}
+            </Button>
+          </div>
+        </section>
+
         {/* Stat Cards */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <section className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           {statCards.length === 0
-            ? Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-28 rounded-xl" />
-              ))
+            ? Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
             : statCards.map((s) => {
                 const toneClass =
                   s.tone === "good"
@@ -596,19 +709,15 @@ export default function Home() {
                   <Card key={s.label} className="overflow-hidden">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-xs font-medium text-muted-foreground flex items-center justify-between">
-                        {s.label}
-                        <span
-                          className={`inline-flex size-7 items-center justify-center rounded-md border ${toneClass}`}
-                        >
-                          <s.icon className="size-3.5" />
+                        <span className="truncate">{s.label}</span>
+                        <span className={`inline-flex size-6 items-center justify-center rounded-md border ${toneClass} shrink-0`}>
+                          <s.icon className="size-3" />
                         </span>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-semibold tracking-tight">{s.value}</div>
-                      {s.sub && (
-                        <div className="text-xs text-muted-foreground mt-1">{s.sub}</div>
-                      )}
+                    <CardContent className="pt-0">
+                      <div className="text-xl font-semibold tracking-tight">{s.value}</div>
+                      {s.sub && <div className="text-[10px] text-muted-foreground mt-1 truncate">{s.sub}</div>}
                     </CardContent>
                   </Card>
                 );
@@ -616,13 +725,26 @@ export default function Home() {
         </section>
 
         {/* Filters */}
-        <section className="flex flex-col md:flex-row gap-2 md:items-center">
+        <section className="flex flex-col md:flex-row gap-2 md:items-center flex-wrap">
           <Input
-            placeholder="Search listings (e.g. iphone, ps5, macbook)..."
+            placeholder="Filter DB listings..."
             value={q}
             onChange={(e) => setQ(e.target.value)}
             className="md:max-w-xs"
           />
+          <Select value={marketFilter} onValueChange={setMarketFilter}>
+            <SelectTrigger className="md:w-32">
+              <SelectValue placeholder="Market" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All markets</SelectItem>
+              {(systemStatus?.markets ?? []).map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.id.toUpperCase()} ({m.listingsTracked})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={category} onValueChange={setCategory}>
             <SelectTrigger className="md:w-44">
               <SelectValue placeholder="Category" />
@@ -637,7 +759,7 @@ export default function Home() {
             </SelectContent>
           </Select>
           <Select value={classification} onValueChange={setClassification}>
-            <SelectTrigger className="md:w-40">
+            <SelectTrigger className="md:w-36">
               <SelectValue placeholder="Deal class" />
             </SelectTrigger>
             <SelectContent>
@@ -649,7 +771,7 @@ export default function Home() {
             </SelectContent>
           </Select>
           <Select value={sort} onValueChange={setSort}>
-            <SelectTrigger className="md:w-44">
+            <SelectTrigger className="md:w-40">
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
             <SelectContent>
@@ -657,6 +779,21 @@ export default function Home() {
               <SelectItem value="price-asc">Price: low to high</SelectItem>
               <SelectItem value="price-desc">Price: high to low</SelectItem>
               <SelectItem value="recent">Recently collected</SelectItem>
+              <SelectItem value="risk">Highest risk first</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={filterMode ?? "none"}
+            onValueChange={(v) => setFilterMode(v === "none" ? null : (v as any))}
+          >
+            <SelectTrigger className="md:w-40">
+              <SelectValue placeholder="Special filters" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No special filter</SelectItem>
+              <SelectItem value="abuse">Abuse-flagged only</SelectItem>
+              <SelectItem value="ghost">Ghost listings only</SelectItem>
+              <SelectItem value="broker">Cross-market brokers</SelectItem>
             </SelectContent>
           </Select>
           <div className="md:ml-auto text-xs text-muted-foreground">
@@ -669,13 +806,13 @@ export default function Home() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[26%]">Item</TableHead>
+                <TableHead className="w-[22%]">Item</TableHead>
                 <TableHead>Price</TableHead>
-                <TableHead>Market Median</TableHead>
-                <TableHead>Deal Score</TableHead>
+                <TableHead>Median</TableHead>
+                <TableHead>Score</TableHead>
                 <TableHead>Seller</TableHead>
                 <TableHead>Contact</TableHead>
-                <TableHead>Risk</TableHead>
+                <TableHead>Scam Signals</TableHead>
                 <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
@@ -691,7 +828,7 @@ export default function Home() {
               ) : listings.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
-                    No listings found. Try adjusting filters or run a new collection.
+                    No listings in DB. Use the search bar above to query Jiji live, or click Collect.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -706,7 +843,6 @@ export default function Home() {
                         <div className="flex items-center gap-3">
                           <div className="size-10 rounded-md bg-muted flex items-center justify-center overflow-hidden shrink-0">
                             {l.imageUrl ? (
-                               
                               <img
                                 src={l.imageUrl}
                                 alt=""
@@ -716,27 +852,38 @@ export default function Home() {
                                 }}
                               />
                             ) : (
-                              <ShoppingBag className="size-4 text-muted-foreground" />
+                              <ImageIcon className="size-4 text-muted-foreground" />
                             )}
                           </div>
                           <div className="min-w-0">
                             <div className="font-medium truncate">{l.title}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {l.condition} · {l.location ?? "—"} · {l.views} views ·{" "}
-                              {l.daysOnMarket}d on market
+                            <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                              <Badge variant="outline" className="text-[10px] py-0 px-1">{l.marketId.toUpperCase()}</Badge>
+                              <span>{l.condition}</span>
+                              {l.location && (
+                                <>
+                                  <span>·</span>
+                                  <MapPin className="size-2.5" />
+                                  <span>{l.location}</span>
+                                </>
+                              )}
+                              <span>·</span>
+                              <Eye className="size-2.5" />
+                              <span>{l.views} views</span>
+                              <span>·</span>
+                              <span>{l.daysOnMarket}d</span>
                             </div>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="font-semibold">{formatKES(l.price)}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {l.marketMedian ? formatKES(l.marketMedian) : "—"}
+                      <TableCell className="font-semibold">
+                        {l.price.toLocaleString()}
+                        <div className="text-[10px] text-muted-foreground">{l.currency}</div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {l.marketMedian ? l.marketMedian.toLocaleString() : "—"}
                         {l.score && l.marketMedian > 0 && (
-                          <span
-                            className={`ml-1 text-xs ${
-                              l.score.priceVsMedian > 0 ? "text-emerald-600" : "text-red-600"
-                            }`}
-                          >
+                          <span className={`ml-1 ${l.score.priceVsMedian > 0 ? "text-emerald-600" : "text-red-600"}`}>
                             ({l.score.priceVsMedian > 0 ? "−" : "+"}
                             {Math.abs(l.score.priceVsMedian * 100).toFixed(0)}%)
                           </span>
@@ -745,13 +892,8 @@ export default function Home() {
                       <TableCell>
                         {l.score ? (
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold tabular-nums">
-                              {l.score.score.toFixed(0)}
-                            </span>
-                            <Badge
-                              variant="outline"
-                              className={classColor[l.score.classification]}
-                            >
+                            <span className="font-semibold tabular-nums">{l.score.score.toFixed(0)}</span>
+                            <Badge variant="outline" className={classColor[l.score.classification]}>
                               {l.score.classification}
                             </Badge>
                           </div>
@@ -761,62 +903,87 @@ export default function Home() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
-                          <span className="font-medium">{l.seller.username}</span>
-                          {l.seller.verifiedBadge && (
-                            <ShieldCheck className="size-3.5 text-emerald-600" />
-                          )}
-                          {l.seller.phoneLeaked && (
-                            <Phone className="size-3.5 text-red-600" />
-                          )}
+                          <span className="font-medium text-sm">{l.seller.username}</span>
+                          {l.seller.verifiedBadge && <ShieldCheck className="size-3 text-emerald-600" />}
+                          {l.seller.isDealer && <Building2 className="size-3 text-orange-600" />}
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-[10px] text-muted-foreground">
                           {l.seller.accountAgeDays}d · {l.seller.totalListings} listings ·{" "}
-                          {l.seller.rating.toFixed(1)}★
+                          {l.seller.advertsCount}/{Math.max(l.seller.feedbackCount, 1)} ads/fb
                         </div>
                       </TableCell>
                       <TableCell>
                         {l.seller.phone ? (
-                          <div className="flex flex-col gap-0.5">
-                            <a
-                              href={`tel:${l.seller.phone.replace(/\s/g, "")}`}
-                              className="font-mono text-xs hover:underline inline-flex items-center gap-1"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Phone className="size-3" />
-                              {l.seller.phone}
-                            </a>
-                            {l.seller.phoneLeaked && (
-                              <span className="text-[10px] text-red-600">
-                                (hidden on page)
-                              </span>
-                            )}
-                          </div>
+                          <a
+                            href={`tel:${l.seller.phone.replace(/\s/g, "")}`}
+                            className="font-mono text-xs hover:underline inline-flex items-center gap-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Phone className="size-3" />
+                            {l.seller.phone}
+                          </a>
                         ) : (
                           <span className="text-xs text-muted-foreground">No phone</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        {l.score ? (
-                          <div className="space-y-0.5">
-                            {l.score.hasFakeDiscount && (
-                              <div className="flex items-center gap-1 text-xs text-orange-600">
-                                <AlertTriangle className="size-3" /> Fake discount
-                              </div>
-                            )}
-                            {l.score.hasPhoneLeak && (
-                              <div className="flex items-center gap-1 text-xs text-red-600">
-                                <Phone className="size-3" /> Phone leak
-                              </div>
-                            )}
-                            {!l.score.hasFakeDiscount && !l.score.hasPhoneLeak && (
-                              <div className="text-xs text-muted-foreground">
-                                risk {Math.round(l.score.sellerRisk * 100)}%
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                        <div className="flex flex-wrap gap-1">
+                          {l.score?.hasFakeDiscount && (
+                            <Badge variant="outline" className="text-[10px] py-0 px-1 bg-orange-50 text-orange-700 border-orange-200">
+                              Fake %
+                            </Badge>
+                          )}
+                          {l.score?.hasPhoneLeak && (
+                            <Badge variant="outline" className="text-[10px] py-0 px-1 bg-red-50 text-red-700 border-red-200">
+                              Phone leak
+                            </Badge>
+                          )}
+                          {l.score?.isGhostListing && (
+                            <Badge variant="outline" className="text-[10px] py-0 px-1 bg-red-50 text-red-700 border-red-200">
+                              <Ghost className="size-2.5" /> Ghost
+                            </Badge>
+                          )}
+                          {l.score?.abuseFlagged && (
+                            <Badge variant="outline" className="text-[10px] py-0 px-1 bg-red-50 text-red-700 border-red-200">
+                              <AlertTriangle className="size-2.5" /> Abuse
+                            </Badge>
+                          )}
+                          {l.score?.moderationChurn24h && (
+                            <Badge variant="outline" className="text-[10px] py-0 px-1 bg-orange-50 text-orange-700 border-orange-200">
+                              Mod churn
+                            </Badge>
+                          )}
+                          {l.score?.editChurn24h && (
+                            <Badge variant="outline" className="text-[10px] py-0 px-1 bg-amber-50 text-amber-700 border-amber-200">
+                              Edit churn
+                            </Badge>
+                          )}
+                          {l.score?.isBoosted && (
+                            <Badge variant="outline" className="text-[10px] py-0 px-1 bg-purple-50 text-purple-700 border-purple-200">
+                              Boosted
+                            </Badge>
+                          )}
+                          {l.score?.crossMarketBroker && (
+                            <Badge variant="outline" className="text-[10px] py-0 px-1 bg-red-50 text-red-700 border-red-200">
+                              <Building2 className="size-2.5" /> Broker
+                            </Badge>
+                          )}
+                          {l.score && l.score.imageDuplicateCount > 0 && (
+                            <Badge variant="outline" className="text-[10px] py-0 px-1 bg-orange-50 text-orange-700 border-orange-200">
+                              <ImageIcon className="size-2.5" /> {l.score.imageDuplicateCount}x dup
+                            </Badge>
+                          )}
+                          {!l.score?.hasFakeDiscount &&
+                           !l.score?.hasPhoneLeak &&
+                           !l.score?.isGhostListing &&
+                           !l.score?.abuseFlagged &&
+                           !l.score?.crossMarketBroker &&
+                           (!l.score || l.score.imageDuplicateCount === 0) && (
+                            <span className="text-[10px] text-muted-foreground">
+                              risk {Math.round((l.score?.sellerRisk ?? 0) * 100)}%
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         {expandedRow === l.id ? (
@@ -829,11 +996,7 @@ export default function Home() {
                     {expandedRow === l.id && (
                       <TableRow key={`${l.id}-expanded`} className="bg-muted/30">
                         <TableCell colSpan={8} className="p-4">
-                          <ExpandedRow
-                            loading={historyLoading}
-                            history={history}
-                            listing={l}
-                          />
+                          <ExpandedRow loading={historyLoading} history={history} listing={l} />
                         </TableCell>
                       </TableRow>
                     )}
@@ -848,18 +1011,15 @@ export default function Home() {
       <footer className="border-t bg-card mt-auto">
         <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-xs text-muted-foreground">
           <div>
-            Pipeline: <span className="font-mono">reverseloom → httpx API direct → DrissionPage fallback → XGBoost scorer</span>
+            Pipeline: <span className="font-mono">categories_counts.json → listing?category_type → item/{`{guid}`} → image-hash dedup → XGBoost-style scorer</span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1">
-              <Users className="size-3" /> {stats?.total ?? 0} listings tracked
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <TrendingDown className="size-3" /> {stats?.fakeDiscounts ?? 0} fake discounts
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <ShieldAlert className="size-3" /> {stats?.scams ?? 0} scams flagged
-            </span>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="inline-flex items-center gap-1"><Users className="size-3" /> {stats?.total ?? 0} listings</span>
+            <span className="inline-flex items-center gap-1"><TrendingDown className="size-3" /> {stats?.fakeDiscounts ?? 0} fake discounts</span>
+            <span className="inline-flex items-center gap-1"><Ghost className="size-3" /> {stats?.ghostListings ?? 0} ghosts</span>
+            <span className="inline-flex items-center gap-1"><AlertTriangle className="size-3" /> {stats?.abuseFlagged ?? 0} abuse</span>
+            <span className="inline-flex items-center gap-1"><Building2 className="size-3" /> {stats?.crossMarketBrokers ?? 0} brokers</span>
+            <span className="inline-flex items-center gap-1"><ImageIcon className="size-3" /> {stats?.imageHashes?.total ?? 0} image hashes ({stats?.imageHashes?.duplicates ?? 0} dup)</span>
           </div>
         </div>
       </footer>
@@ -867,9 +1027,6 @@ export default function Home() {
   );
 }
 
-/**
- * Expanded row content: price-history sparkline + risk factors.
- */
 function ExpandedRow({
   loading,
   history,
@@ -879,12 +1036,8 @@ function ExpandedRow({
   history: HistoryResponse | null;
   listing: EnrichedListing;
 }) {
-  if (loading) {
-    return <Skeleton className="h-40 w-full" />;
-  }
-  if (!history) {
-    return <div className="text-sm text-muted-foreground">No history available.</div>;
-  }
+  if (loading) return <Skeleton className="h-40 w-full" />;
+  if (!history) return <div className="text-sm text-muted-foreground">No history available.</div>;
 
   const chartData = history.history.map((h) => ({
     date: new Date(h.recordedAt).toLocaleDateString(),
@@ -894,26 +1047,18 @@ function ExpandedRow({
   const factors = listing.score ? parseFactors(listing) : [];
   const claimedVsReal =
     listing.score?.claimedDiscount != null && listing.score?.realDiscount != null
-      ? {
-          claimed: listing.score.claimedDiscount,
-          real: listing.score.realDiscount,
-        }
+      ? { claimed: listing.score.claimedDiscount, real: listing.score.realDiscount }
       : null;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {/* Price History Chart */}
       <div className="md:col-span-2 border rounded-lg p-3 bg-background">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-medium">Price History</h3>
           {claimedVsReal && (
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-orange-600 line-through">
-                Claimed {pct(claimedVsReal.claimed)} off
-              </span>
-              <span className="text-emerald-600">
-                Real {pct(claimedVsReal.real)} off
-              </span>
+              <span className="text-orange-600 line-through">Claimed {pct(claimedVsReal.claimed)} off</span>
+              <span className="text-emerald-600">Real {pct(claimedVsReal.real)} off</span>
             </div>
           )}
         </div>
@@ -921,42 +1066,26 @@ function ExpandedRow({
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
               <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis
-                tick={{ fontSize: 10 }}
-                stroke="hsl(var(--muted-foreground))"
-                tickFormatter={(v) => formatKES(v)}
-                width={50}
-              />
-              <Tooltip
-                formatter={(v: number) => [formatKES(v), "Price"]}
-                contentStyle={{ fontSize: 12 }}
-              />
+              <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => formatKES(v)} width={50} />
+              <Tooltip formatter={(v: number) => [v.toLocaleString(), "Price"]} contentStyle={{ fontSize: 12 }} />
               <ReferenceLine y={history.listing.currentPrice} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-              <Line
-                type="monotone"
-                dataKey="price"
-                stroke="hsl(var(--foreground))"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-              />
+              <Line type="monotone" dataKey="price" stroke="hsl(var(--foreground))" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Risk Factors */}
       <div className="border rounded-lg p-3 bg-background">
         <h3 className="text-sm font-medium mb-2">Risk Factors</h3>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {factors.map((f) => (
             <div key={f.label} className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">{f.label}</span>
-              <span className="font-mono font-medium">{f.value}</span>
+              <span className={`font-mono font-medium ${f.danger ? "text-red-600" : ""}`}>{f.value}</span>
             </div>
           ))}
         </div>
 
-        {/* Seller contact — public phone number, surfaced for buyer action */}
         <div className="mt-3 pt-3 border-t">
           <div className="text-xs text-muted-foreground mb-1">Seller Contact</div>
           {listing.seller.phone ? (
@@ -971,19 +1100,12 @@ function ExpandedRow({
             <span className="text-xs text-muted-foreground">No phone published</span>
           )}
           {listing.seller.phoneLeaked && (
-            <div className="text-[10px] text-red-600 mt-1">
-              ⚠ Seller hid phone on listing page but API exposed it anyway.
-            </div>
+            <div className="text-[10px] text-red-600 mt-1">⚠ Phone hidden on listing but API exposed it.</div>
           )}
         </div>
 
         {listing.url && (
-          <a
-            href={listing.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block mt-3 text-xs text-foreground underline underline-offset-2"
-          >
+          <a href={listing.url} target="_blank" rel="noopener noreferrer" className="block mt-3 text-xs text-foreground underline underline-offset-2">
             View original listing →
           </a>
         )}
@@ -992,25 +1114,28 @@ function ExpandedRow({
   );
 }
 
-function parseFactors(l: EnrichedListing): { label: string; value: string }[] {
+function parseFactors(l: EnrichedListing): { label: string; value: string; danger?: boolean }[] {
   if (!l.score) return [];
-  return [
+  const factors: Array<{ label: string; value: string; danger?: boolean }> = [
     { label: "Price vs Median", value: `${(l.score.priceVsMedian * 100).toFixed(1)}%` },
     { label: "Seller Risk", value: `${(l.score.sellerRisk * 100).toFixed(0)}%` },
-    { label: "Popularity Risk", value: `${(l.score.popularityRisk * 100).toFixed(0)}%` },
-    {
-      label: "Price Manipulation",
-      value: `${(l.score.priceManipulation * 100).toFixed(0)}%`,
-    },
-    { label: "Phone Leak", value: l.score.hasPhoneLeak ? "YES" : "no" },
-    { label: "Fake Discount", value: l.score.hasFakeDiscount ? "YES" : "no" },
-    {
-      label: "Claimed Discount",
-      value: l.score.claimedDiscount != null ? pct(l.score.claimedDiscount) : "—",
-    },
-    {
-      label: "Real Discount",
-      value: l.score.realDiscount != null ? pct(l.score.realDiscount) : "—",
-    },
+    { label: "Dealer Ratio", value: l.score.dealerRatio.toFixed(1), danger: l.score.dealerRatio > 50 },
+    { label: "Image Duplicates", value: String(l.score.imageDuplicateCount), danger: l.score.imageDuplicateCount > 0 },
+    { label: "Relist Count", value: String(l.score.relistCount), danger: l.score.relistCount > 0 },
+    { label: "Edit Churn 24h", value: l.score.editChurn24h ? "YES" : "no", danger: l.score.editChurn24h },
+    { label: "Mod Churn 24h", value: l.score.moderationChurn24h ? "YES" : "no", danger: l.score.moderationChurn24h },
+    { label: "Ghost Listing", value: l.score.isGhostListing ? "YES" : "no", danger: l.score.isGhostListing },
+    { label: "Abuse Flagged", value: l.score.abuseFlagged ? "YES" : "no", danger: l.score.abuseFlagged },
+    { label: "Boosted", value: l.score.isBoosted ? "YES" : "no" },
+    { label: "Cross-Market", value: l.score.crossMarketBroker ? "YES" : "no", danger: l.score.crossMarketBroker },
+    { label: "Phone Leak", value: l.score.hasPhoneLeak ? "YES" : "no", danger: l.score.hasPhoneLeak },
+    { label: "Fake Discount", value: l.score.hasFakeDiscount ? "YES" : "no", danger: l.score.hasFakeDiscount },
   ];
+  if (l.score.claimedDiscount != null) {
+    factors.push({ label: "Claimed Discount", value: pct(l.score.claimedDiscount) });
+  }
+  if (l.score.realDiscount != null) {
+    factors.push({ label: "Real Discount", value: pct(l.score.realDiscount) });
+  }
+  return factors;
 }

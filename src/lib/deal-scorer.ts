@@ -1,33 +1,24 @@
 /**
  * Deal Scorer — XGBoost-style gradient-boosted-tree proxy.
  *
- * A real XGBoost model would be trained offline on labeled (scam/legit) pairs.
- * We approximate it here with a weighted-feature scoring function calibrated to
- * produce a 0..100 score, then bucketed into GREAT / FAIR / RISKY / SCAM.
+ * Now incorporates recon-derived features:
+ *   - date_edited / date_moderated churn (rapid edits = distress/scam)
+ *   - sold_reported + status=active (ghost listing)
+ *   - abuse_reported (previously flagged)
+ *   - is_boost + paid_info (commercial intent = broker)
+ *   - dealer ratio (adverts_count / feedback_count > 50 = dealer)
+ *   - image duplicate signals (relist, cross-seller, cross-market)
+ *   - available_tops_count (paying for promotion)
  *
- * Features (sourced from API fields where possible, NOT HTML scraping):
- *   1. price_vs_median       — how far below market median (lower = better deal)
- *   2. seller_listing_count  — established sellers are safer
- *   3. seller_account_age    — older accounts are safer
- *   4. photo_count           — listings with multiple photos are more trustworthy
- *   5. views_per_day         — popularity signal (sweet spot, not too low/high)
- *   6. price_drop_count     — sellers who drop price repeatedly may be motivated,
- *                              or may be running a fake-discount V-curve
- *   7. has_phone_leak       — seller hid phone but API still exposes it.
- *                              Strong scam-or-careless signal.
- *
- * The has_phone_leak feature is unique to recon against the seller/data.json
- * endpoint and is a high-information signal: legitimate sellers don't hide
- * their phone. A seller who toggles hide_phone=1 but the API still leaks it
- * is either (a) trying to look legitimate while routing victims off-platform,
- * or (b) careless about their own privacy settings. Both correlate with scam.
+ * Output: 0..100 score bucketed into GREAT / FAIR / RISKY / SCAM.
  */
 
-import { analyzePriceHistory, type PricePoint, type PriceAnalysis } from "./price-analysis";
+import { analyzePriceHistory, type PricePoint } from "./price-analysis";
 
 export type DealClass = "GREAT" | "FAIR" | "RISKY" | "SCAM";
 
 export interface DealFeatures {
+  // Basic
   price: number;
   marketMedian: number;
   sellerListingCount: number;
@@ -38,70 +29,97 @@ export interface DealFeatures {
   hasPhoneLeak: boolean;
   hasVerifiedBadge: boolean;
   priceHistory: PricePoint[];
+
+  // Recon-derived — timestamps
+  dateCreated: string | null;
+  dateEdited: string | null;
+  dateModerated: string | null;
+
+  // Recon-derived — flags
+  soldReported: boolean;
+  status: string; // "active" | "sold" | ...
+  canMakeOffer: boolean;
+  abuseReported: boolean;
+  isBoost: boolean;
+  availableTopsCount: number;
+
+  // Seller-level
+  advertsCount: number;
+  feedbackCount: number;
+
+  // Image duplicate signals (computed by image-hash module)
+  imageDuplicateCount: number;
+  crossSellerCount: number; // same image under different sellers = stolen photo
+  relistCount: number; // same seller, same image, different listing = relist
+  crossMarketCount: number; // same image across markets = broker
 }
 
 export interface DealScoreResult {
-  score: number; // 0..100, higher = better deal
+  score: number;
   classification: DealClass;
-  priceVsMedian: number; // (median - price) / median, positive = below market
-  sellerRisk: number; // 0..1, higher = riskier seller
-  popularityRisk: number; // 0..1
-  priceManipulation: number; // 0..1
+  priceVsMedian: number;
+  sellerRisk: number;
+  popularityRisk: number;
+  priceManipulation: number;
   hasPhoneLeak: boolean;
   hasFakeDiscount: boolean;
   claimedDiscount: number | null;
   realDiscount: number | null;
+  // New signals
+  editChurn24h: boolean;
+  moderationChurn24h: boolean;
+  isGhostListing: boolean;
+  abuseFlagged: boolean;
+  isBoosted: boolean;
+  dealerRatio: number;
+  crossMarketBroker: boolean;
+  imageDuplicateCount: number;
+  relistCount: number;
   factors: Record<string, number | string | boolean>;
 }
 
-/**
- * Sigmoid helper for squashing raw scores to 0..100.
- */
 function sigmoid(x: number): number {
   return 100 / (1 + Math.exp(-x));
 }
 
-/**
- * Scaled feature → 0..1 contribution (negative = bad, positive = good).
- */
 function clamp(x: number, lo = -2, hi = 2): number {
   return Math.max(lo, Math.min(hi, x));
 }
 
-/**
- * Compute the deal score from raw features.
- *
- * Returns a structured object with both the headline score and the
- * underlying feature values for SHAP-style explainability in the UI.
- */
+function hoursBetween(a: string | null, b: string | null): number | null {
+  if (!a || !b) return null;
+  const dA = new Date(a).getTime();
+  const dB = new Date(b).getTime();
+  if (isNaN(dA) || isNaN(dB)) return null;
+  return (dB - dA) / 3600000;
+}
+
 export function scoreDeal(f: DealFeatures): DealScoreResult {
   // ---- Price signal ----
   const priceVsMedian =
     f.marketMedian > 0 ? (f.marketMedian - f.price) / f.marketMedian : 0;
-  // Big discounts get capped — anything beyond -50% vs market is suspicious.
   const cappedPriceSignal = clamp(priceVsMedian * 4);
 
   // ---- Seller risk ----
-  // New sellers (account age < 14 days) get heavy penalty.
   const ageDays = f.sellerAccountAgeDays;
   const ageSignal = ageDays < 14 ? -1.2 : ageDays < 60 ? -0.3 : ageDays > 365 ? 0.4 : 0;
-
-  // Low listing count = broker or one-off scammer
   const listingSignal =
     f.sellerListingCount < 3 ? -0.8 : f.sellerListingCount < 10 ? -0.2 : 0.4;
-
-  // Verified badge
   const verifiedSignal = f.hasVerifiedBadge ? 0.4 : 0;
+
+  // ---- Dealer ratio (recon signal) ----
+  // adverts_count / feedback_count > 50 = dealer posing as individual
+  const denom = Math.max(f.feedbackCount, 1);
+  const dealerRatio = f.advertsCount / denom;
+  const dealerSignal = dealerRatio > 50 ? -1.0 : dealerRatio > 20 ? -0.4 : 0;
 
   const sellerRisk = Math.max(
     0,
-    Math.min(1, (-ageSignal - listingSignal) / 2 + (f.hasVerifiedBadge ? 0 : 0.2))
+    Math.min(1, (-ageSignal - listingSignal - dealerSignal) / 3 + (f.hasVerifiedBadge ? 0 : 0.15))
   );
 
   // ---- Popularity ----
   const viewsPerDay = f.daysOnMarket > 0 ? f.views / f.daysOnMarket : f.views;
-  // Sweet spot: 5..80 views/day. Below 2 = no one's looking (suspicious).
-  // Above 200 = maybe hot, but also could be honeypot.
   let popularitySignal: number;
   if (viewsPerDay < 2) popularitySignal = -0.5;
   else if (viewsPerDay < 5) popularitySignal = 0;
@@ -113,8 +131,8 @@ export function scoreDeal(f: DealFeatures): DealScoreResult {
   // ---- Photo count ----
   const photoSignal = f.photoCount === 0 ? -1.0 : f.photoCount < 3 ? -0.3 : 0.3;
 
-  // ---- Price manipulation ----
-  const analysis: PriceAnalysis = analyzePriceHistory(f.priceHistory);
+  // ---- Price manipulation (V-curve) ----
+  const analysis = analyzePriceHistory(f.priceHistory);
   let manipulationSignal = 0;
   let claimedDiscount: number | null = null;
   let realDiscount: number | null = null;
@@ -125,13 +143,40 @@ export function scoreDeal(f: DealFeatures): DealScoreResult {
     realDiscount = analysis.real_discount;
     hasFakeDiscount = true;
   } else if (analysis.type === "steady_discount") {
-    manipulationSignal = 0.2; // real discount = good signal
+    manipulationSignal = 0.2;
     claimedDiscount = analysis.real_discount;
     realDiscount = analysis.real_discount;
   }
 
-  // ---- Phone leak (the recon-specific signal) ----
+  // ---- Phone leak ----
   const leakSignal = f.hasPhoneLeak ? -1.0 : 0;
+
+  // ---- Churn signals (recon) ----
+  const editHours = hoursBetween(f.dateCreated, f.dateEdited);
+  const moderationHours = hoursBetween(f.dateCreated, f.dateModerated);
+  const editChurn24h = editHours != null && editHours < 24;
+  const moderationChurn24h = moderationHours != null && moderationHours < 1;
+  const churnSignal =
+    (editChurn24h ? -0.6 : 0) + (moderationChurn24h ? -1.0 : 0);
+
+  // ---- Ghost listing (recon) ----
+  const isGhostListing = f.soldReported && f.status === "active";
+  const ghostSignal = isGhostListing ? -0.8 : 0;
+
+  // ---- Abuse flag (recon) ----
+  const abuseFlagged = f.abuseReported;
+  const abuseSignal = abuseFlagged ? -1.5 : 0;
+
+  // ---- Boost / paid promotion (recon: commercial intent) ----
+  const isBoosted = f.isBoost || f.availableTopsCount > 0;
+  const boostSignal = isBoosted ? -0.3 : 0;
+
+  // ---- Image duplicate signals (recon) ----
+  // cross-seller (stolen photo) is the strongest signal
+  const crossSellerSignal = f.crossSellerCount > 1 ? -1.2 : 0;
+  const relistSignal = f.relistCount > 0 ? -0.4 : 0; // relist is weaker — could be legitimate
+  const crossMarketBroker = f.crossMarketCount > 1;
+  const crossMarketSignal = crossMarketBroker ? -0.8 : 0;
 
   // ---- Composite score ----
   const raw =
@@ -139,26 +184,38 @@ export function scoreDeal(f: DealFeatures): DealScoreResult {
     ageSignal * 0.8 +
     listingSignal * 0.7 +
     verifiedSignal * 0.5 +
+    dealerSignal * 0.9 +
     popularitySignal * 0.5 +
     photoSignal * 0.4 +
     manipulationSignal * 1.4 +
-    leakSignal * 0.9;
+    leakSignal * 0.9 +
+    churnSignal * 0.8 +
+    ghostSignal * 0.7 +
+    abuseSignal * 1.3 +
+    boostSignal * 0.4 +
+    crossSellerSignal * 1.1 +
+    relistSignal * 0.5 +
+    crossMarketSignal * 0.7;
 
   const score = sigmoid(raw);
 
   // ---- Classification ----
   let classification: DealClass;
-  if (f.hasPhoneLeak && hasFakeDiscount) classification = "SCAM";
+  const strongScamSignal =
+    abuseFlagged ||
+    (f.hasPhoneLeak && hasFakeDiscount) ||
+    f.crossSellerCount > 1 ||
+    isGhostListing;
+
+  if (strongScamSignal) classification = "SCAM";
   else if (score >= 70 && sellerRisk < 0.5) classification = "GREAT";
   else if (score >= 55 && sellerRisk < 0.7) classification = "FAIR";
-  else if (hasFakeDiscount || f.hasPhoneLeak || sellerRisk > 0.7) classification = "RISKY";
-  else if (score < 40) classification = "RISKY";
+  else if (hasFakeDiscount || f.hasPhoneLeak || sellerRisk > 0.7 || isBoosted) {
+    classification = "RISKY";
+  } else if (score < 40) classification = "RISKY";
   else classification = "FAIR";
 
-  // SCAM override
-  if (score < 30 || (f.hasPhoneLeak && hasFakeDiscount && sellerRisk > 0.8)) {
-    classification = "SCAM";
-  }
+  if (score < 30 && strongScamSignal) classification = "SCAM";
 
   const factors: Record<string, number | string | boolean> = {
     price_vs_median: Number(priceVsMedian.toFixed(3)),
@@ -167,8 +224,21 @@ export function scoreDeal(f: DealFeatures): DealScoreResult {
     photo_count: f.photoCount,
     views_per_day: Number(viewsPerDay.toFixed(1)),
     has_verified_badge: f.hasVerifiedBadge,
+    dealer_ratio: Number(dealerRatio.toFixed(2)),
+    adverts_count: f.advertsCount,
+    feedback_count: f.feedbackCount,
     price_manipulation_type: analysis.type,
     has_phone_leak: f.hasPhoneLeak,
+    edit_churn_24h: editChurn24h,
+    moderation_churn_24h: moderationChurn24h,
+    is_ghost_listing: isGhostListing,
+    abuse_reported: abuseFlagged,
+    is_boosted: isBoosted,
+    available_tops_count: f.availableTopsCount,
+    image_duplicate_count: f.imageDuplicateCount,
+    cross_seller_count: f.crossSellerCount,
+    relist_count: f.relistCount,
+    cross_market_broker: crossMarketBroker,
     raw_score: Number(raw.toFixed(3)),
   };
 
@@ -183,6 +253,15 @@ export function scoreDeal(f: DealFeatures): DealScoreResult {
     hasFakeDiscount,
     claimedDiscount: claimedDiscount != null ? Number(claimedDiscount.toFixed(3)) : null,
     realDiscount: realDiscount != null ? Number(realDiscount.toFixed(3)) : null,
+    editChurn24h,
+    moderationChurn24h,
+    isGhostListing,
+    abuseFlagged,
+    isBoosted,
+    dealerRatio: Number(dealerRatio.toFixed(2)),
+    crossMarketBroker,
+    imageDuplicateCount: f.imageDuplicateCount,
+    relistCount: f.relistCount,
     factors,
   };
 }

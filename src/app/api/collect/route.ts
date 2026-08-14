@@ -1,22 +1,34 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { runCollection } from "@/lib/collector";
+import { MARKETS, type MarketId } from "@/lib/jiji-client";
 
 /**
  * POST /api/collect
- * Body: { queries?: string[], sourceMode?: "api" | "browser" }
  *
- * Triggers a fresh collection sweep. Idempotent — running it again will
- * refresh existing listings and add new ones.
+ * Body options:
+ *   marketId?: "ke" | "ng" | "gh" | "tz" | "ug" (default: all enabled)
+ *   queries?: string[]             — search-based collection
+ *   categories?: [{catId, slug}]   — category-based collection (default)
+ *   maxPagesPerCategory?: number  — default 1 (100 items per page)
+ *   runCensus?: boolean            — default true
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
+    const marketId = body?.marketId as MarketId | undefined;
+    if (marketId && !MARKETS.find((m) => m.id === marketId)) {
+      return NextResponse.json({ ok: false, error: "invalid market" }, { status: 400 });
+    }
     const summary = await runCollection({
+      marketId,
       queries: body?.queries,
-      sourceMode: body?.sourceMode ?? "api",
+      categories: body?.categories,
+      maxPagesPerCategory: body?.maxPagesPerCategory,
+      runCensus: body?.runCensus,
     });
-    return NextResponse.json({ ok: true, summary });
+    const statusCode = summary.blocked ? 502 : 200;
+    return NextResponse.json({ ok: !summary.blocked, summary }, { status: statusCode });
   } catch (e: any) {
     return NextResponse.json(
       { ok: false, error: e?.message ?? "collection failed" },
