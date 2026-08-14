@@ -232,6 +232,27 @@ model ProxyPool {
   createdAt    DateTime @default(now())
 }
 
+/// Persisted Cloudflare bypass cookies (cf_clearance, __cf_bm).
+/// Bound to (domain, userAgent, proxyIp) — CF re-validates all three on each request.
+/// TTL ~30 minutes; refresh proactively before expiry.
+model CookieVault {
+  id          Int      @id @default(autoincrement())
+  domain      String   // "jiji.co.ke"
+  name        String   // "cf_clearance" | "__cf_bm"
+  value       String
+  userAgent   String
+  proxyIp     String?
+  source      String   @default("unknown") // "capsolver" | "nodriver" | "manual" | "residential-proxy"
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime?
+  useCount    Int      @default(0)
+  isValid     Boolean  @default(true)
+
+  @@index([domain, name, expiresAt])
+  @@unique([domain, name, userAgent, proxyIp])
+}
+
 model ModelArtifact {
   id           String   @id @default(cuid())
   name         String   @unique // "deal-scorer"

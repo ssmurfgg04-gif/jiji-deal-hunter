@@ -29,7 +29,7 @@
  */
 
 import { db } from "./db";
-import { pickProxy, seedDefaultProxies } from "./proxy-pool";
+import { pickProxy, seedDefaultProxies, markProxyFailed } from "./proxy-pool";
 
 export const MARKETS = [
   { id: "ke", name: "Kenya", baseUrl: "https://jiji.co.ke", currency: "KES" },
@@ -206,6 +206,22 @@ function defaultHeaders(marketId: string): Record<string, string> {
 }
 
 /**
+ * Extract the proxy IP from a proxy URL for CookieVault keying.
+ * Returns null for direct (no-proxy) requests.
+ * Cloudflare binds cf_clearance to the IP that solved the challenge, so
+ * a cookie obtained via proxy A will NOT work via proxy B.
+ */
+function proxyIpFromUrl(proxyUrl: string | null): string | null {
+  if (!proxyUrl) return null;
+  try {
+    const u = new URL(proxyUrl);
+    return u.hostname;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Pacing between requests (milliseconds).
  *
  * Default: 1200ms (1.2 req/sec) — fine for interactive use in the dashboard.
@@ -338,55 +354,147 @@ async function tryLiveApi<T>(
 
   // Direct attempt first (fast path — no proxy overhead if not blocked)
   const directResult = await tryFetch<T>(marketId, url.toString(), null, opts.timeoutMs);
-  if (directResult !== "CLOUDFLARE_BLOCKED") {
+  if (directResult !== "CLOUDFLARE_BLOCKED" &&
+      directResult !== "CLOUDFLARE_SOFT_CHALLENGE" &&
+      directResult !== "CLOUDFLARE_HARD_BLOCK") {
     return directResult;
   }
 
-  // Direct call was Cloudflare-blocked. Rotate through up to 3 proxies.
-  console.warn(`[jiji-client] Cloudflare blocked direct request to ${url.pathname} — rotating proxies...`);
+  // Direct call was Cloudflare-blocked. Behavior depends on block type.
+  const blockType = directResult as CloudflareBlockType;
+
+  if (blockType === "CLOUDFLARE_HARD_BLOCK") {
+    // HARD_BLOCK means our IP is permanently banned on this site.
+    // No point trying proxies from the SAME datacenter — they'll be banned too.
+    // Log once and fall through to proxy rotation (in case we have residential).
+    console.warn(`[jiji-client] HARD_BLOCK on ${url.pathname} — IP is banned. Need residential proxy.`);
+    recordFailure("blocked", `HARD_BLOCK on ${marketId} — IP banned`);
+    // Don't waste time on free public proxies — they're datacenter IPs too.
+    // Fall through to Wayback fallback in caller.
+    return null;
+  }
+
+  // SOFT_CHALLENGE — solvable in principle. Rotate through up to 3 proxies.
+  console.warn(`[jiji-client] Cloudflare SOFT_CHALLENGE on ${url.pathname} — rotating proxies...`);
 
   // Lazy seed on first block (idempotent — skips existing entries)
   await seedDefaultProxies().catch(() => null);
 
   const maxProxies = 3;
+  let proxiesTried = 0;
+  let hardBlocked = false;
   for (let i = 0; i < maxProxies; i++) {
     const proxyUrl = await pickProxy().catch(() => null);
     if (!proxyUrl) {
       console.warn(`[jiji-client] No working proxies left in pool (tried ${i}).`);
       break;
     }
+    proxiesTried++;
     console.log(`[jiji-client] Retrying via proxy [${i + 1}/${maxProxies}]: ${proxyUrl}`);
     const result = await tryFetch<T>(marketId, url.toString(), proxyUrl, opts.timeoutMs);
-    if (result !== "CLOUDFLARE_BLOCKED") {
+    if (result !== "CLOUDFLARE_BLOCKED" &&
+        result !== "CLOUDFLARE_SOFT_CHALLENGE" &&
+        result !== "CLOUDFLARE_HARD_BLOCK") {
       return result;
     }
-    console.warn(`[jiji-client] Proxy ${proxyUrl} also blocked — trying next...`);
+    if (result === "CLOUDFLARE_HARD_BLOCK") {
+      console.warn(`[jiji-client] Proxy ${proxyUrl} HARD_BLOCKED — IP is banned, marking proxy as failed.`);
+      // Mark this proxy as failed — it's on a banned IP range
+      await markProxyFailed(proxyUrl).catch(() => null);
+      hardBlocked = true;
+    } else {
+      console.warn(`[jiji-client] Proxy ${proxyUrl} also soft-challenged — trying next...`);
+    }
   }
 
-  recordFailure("blocked", "All proxies exhausted (Cloudflare 403+HTML)");
+  if (hardBlocked && proxiesTried > 0) {
+    recordFailure("blocked", `All ${proxiesTried} proxies HARD_BLOCKED — need residential IPs`);
+  } else {
+    recordFailure("blocked", `All ${proxiesTried} proxies exhausted (Cloudflare SOFT_CHALLENGE)`);
+  }
   return null;
+}
+
+/**
+ * Distinguishes two classes of Cloudflare 403:
+ *   - SOFT_CHALLENGE: "Just a moment..." page — solvable with stealth browser / residential proxy / CapSolver.
+ *     Our IP is NOT banned; the request just needs to solve the Turnstile challenge.
+ *   - HARD_BLOCK: "Sorry, you have been blocked" page — IP is permanently banned.
+ *     Retrying with the same IP will NEVER succeed; must rotate to a new IP.
+ *
+ * Per WAF_BYPASS_RESEARCH.md: 3/8 Jiji regional sites hard-block our sandbox IP,
+ * 5/8 soft-challenge us. Without differentiation we waste proxy rotations on
+ * dead IPs.
+ */
+export type CloudflareBlockType = "CLOUDFLARE_SOFT_CHALLENGE" | "CLOUDFLARE_HARD_BLOCK";
+
+// Legacy alias for backwards-compat (old callers compared against "CLOUDFLARE_BLOCKED")
+export const CLOUDFLARE_BLOCKED = "CLOUDFLARE_BLOCKED" as const;
+export type FetchResult<T> = T | null | CloudflareBlockType | typeof CLOUDFLARE_BLOCKED;
+
+/**
+ * Classify a 403 response body to determine if it's a soft challenge or hard IP ban.
+ * Hard blocks MUST trigger proxy rotation; soft challenges MAY trigger CapSolver/nodriver.
+ */
+function classifyCloudflareBlock(body: string): CloudflareBlockType {
+  // Hard block: "Sorry, you have been blocked. You are unable to access jiji.co.ke"
+  if (body.includes("Sorry, you have been blocked") ||
+      body.includes("unable to access") ||
+      body.includes("Cloudflare Ray ID") && body.includes("blocked")) {
+    return "CLOUDFLARE_HARD_BLOCK";
+  }
+  // Soft challenge: "Just a moment..." / "Enable JavaScript and cookies"
+  if (body.includes("Just a moment") ||
+      body.includes("cf-mitigated: challenge") ||
+      body.includes("Enable JavaScript and cookies") ||
+      body.includes("challenge-platform")) {
+    return "CLOUDFLARE_SOFT_CHALLENGE";
+  }
+  // Default: treat as soft challenge (safer — at least tries one more rotation)
+  return "CLOUDFLARE_SOFT_CHALLENGE";
 }
 
 /**
  * Single fetch attempt with optional proxy. Returns:
  *   - T (the parsed JSON) on success
  *   - null on non-Cloudflare failure (4xx, 5xx, network error)
- *   - "CLOUDFLARE_BLOCKED" sentinel on 403+HTML (so caller can rotate proxies)
+ *   - "CLOUDFLARE_SOFT_CHALLENGE" on 403 + "Just a moment..." (try CapSolver/stealth)
+ *   - "CLOUDFLARE_HARD_BLOCK" on 403 + "Sorry, you have been blocked" (rotate IP)
+ *   - "CLOUDFLARE_BLOCKED" (legacy alias) — only returned if classification fails
  */
 async function tryFetch<T>(
   marketId: string,
   url: string,
   proxyUrl: string | null,
   timeoutMs?: number
-): Promise<T | null | "CLOUDFLARE_BLOCKED"> {
+): Promise<T | null | CloudflareBlockType | typeof CLOUDFLARE_BLOCKED> {
   await pacedDelay();
 
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs ?? 8000);
+
+    // Build headers — include CookieVault cookies if available for this UA + domain.
+    // Per WAF_BYPASS_RESEARCH.md section 6.2: cf_clearance cookie (when present)
+    // bypasses the Cloudflare challenge entirely for ~30 min after solve.
+    const headers = defaultHeaders(marketId);
+    const market = MARKETS.find((m) => m.id === marketId);
+    const targetDomain = market?.baseUrl
+      ? new URL(market.baseUrl).hostname
+      : "jiji.co.ke";
+    try {
+      const { getAllValidCookies, formatCookieHeader } = await import("./cookie-vault");
+      const cookies = await getAllValidCookies(targetDomain, headers["User-Agent"], proxyIpFromUrl(proxyUrl));
+      if (cookies.length > 0) {
+        headers["Cookie"] = formatCookieHeader(cookies);
+      }
+    } catch {
+      // cookie-vault may not be available (e.g. during tests). Don't block.
+    }
+
     // Node 22+ supports `proxy` in fetch init. Cast to any for TS DOM lib compatibility.
     const init: any = {
-      headers: defaultHeaders(marketId),
+      headers,
       signal: controller.signal,
       cache: "no-store",
     };
@@ -394,14 +502,25 @@ async function tryFetch<T>(
     const resp = await fetch(url, init);
     clearTimeout(timeout);
 
-    // Cloudflare challenge pages return 403 with HTML body — signal caller to rotate.
+    // Cloudflare challenge pages return 403 with HTML body — classify and signal caller.
     if (resp.status === 403) {
       const ct = resp.headers.get("content-type") ?? "";
       if (ct.includes("text/html")) {
-        // Drain the body to avoid leaking the connection
-        await resp.text().catch(() => null);
-        if (!proxyUrl) recordFailure("blocked", "Cloudflare JS challenge (403 + HTML)");
-        return "CLOUDFLARE_BLOCKED";
+        // Drain body to read challenge type
+        const body = await resp.text().catch(() => "");
+        const blockType = classifyCloudflareBlock(body);
+        if (!proxyUrl) {
+          recordFailure("blocked", `Cloudflare ${blockType.replace("CLOUDFLARE_", "")} (403 + HTML)`);
+        }
+        // If we sent a cookie and still got blocked, invalidate it — it's stale.
+        if (headers["Cookie"]) {
+          try {
+            const { invalidateCookie } = await import("./cookie-vault");
+            await invalidateCookie(targetDomain, "cf_clearance", headers["User-Agent"], proxyIpFromUrl(proxyUrl));
+            console.warn(`[jiji-client] Cookie rejected by CF — invalidated stale cookie for ${targetDomain}`);
+          } catch {}
+        }
+        return blockType;
       }
     }
 

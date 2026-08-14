@@ -122,6 +122,36 @@ export async function pickProxy(): Promise<string | null> {
 }
 
 /**
+ * Mark a proxy as failed — used when proxy returns a Cloudflare HARD_BLOCK
+ * (IP is permanently banned). Increments fail count; auto-disables after 3 fails.
+ *
+ * Per WAF_BYPASS_RESEARCH.md section 4.1: datacenter IPs that hit HARD_BLOCK
+ * should not be retried — they will never succeed.
+ */
+export async function markProxyFailed(proxyUrl: string, reason: string = "HARD_BLOCK"): Promise<void> {
+  try {
+    const existing = await db.proxyPool.findUnique({ where: { url: proxyUrl } });
+    if (!existing) return;
+    const newFailCount = existing.failCount + 1;
+    const shouldDisable = newFailCount >= 3 || reason === "HARD_BLOCK";
+    await db.proxyPool.update({
+      where: { url: proxyUrl },
+      data: {
+        failCount: newFailCount,
+        isWorking: shouldDisable ? false : existing.isWorking,
+        lastTestedAt: new Date(),
+      },
+    });
+    if (shouldDisable) {
+      console.warn(`[proxy-pool] Disabled proxy ${proxyUrl} (failCount=${newFailCount}, reason=${reason})`);
+    }
+  } catch (e) {
+    // Don't let proxy bookkeeping crash the main pipeline
+    console.error(`[proxy-pool] markProxyFailed error:`, e);
+  }
+}
+
+/**
  * Validate that a proxy URL is safe to test.
  *
  * Prevents SSRF: rejects non-http(s) schemes (file://, gopher://, javascript:),
