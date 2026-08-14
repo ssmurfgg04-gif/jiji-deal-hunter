@@ -103,6 +103,12 @@ model Listing {
   paidInfo          String?  // JSON of paid_info
   availableTopsCount Int     @default(0) // commercial intent
 
+  // Jiji's own market price valuation (free scam signal)
+  priceValuationLow   Int?
+  priceValuationHigh  Int?
+  priceValuationLabel String?  // "below market" | "above market" | ...
+  priceValuationUrl   String?  // round-trips filter state for verification
+
   // Relations
   sellerId          String
   seller            Seller   @relation(fields: [sellerId], references: [id])
@@ -203,4 +209,29 @@ model ProxyPool {
   lastTestedAt DateTime?
   failCount    Int      @default(0)
   createdAt    DateTime @default(now())
+}
+
+model ModelArtifact {
+  id           String   @id @default(cuid())
+  name         String   @unique // "deal-scorer"
+  version      Int      @default(1)
+  algorithm    String   @default("xgboost") // xgboost | weighted-features
+  filePath     String   // path to model file under /ml-models/
+  trainingRows Int      @default(0)
+  features     String   @default("[]") // JSON list of feature names
+  metrics      String   @default("{}") // JSON of train/val metrics
+  trainedAt    DateTime @default(now())
+  active       Boolean  @default(true)
+
+  @@index([name, active])
+}
+
+model CacheEntry {
+  id         String   @id @default(cuid())
+  key        String   @unique
+  value      String   // JSON-serialized payload
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([expiresAt])
 }

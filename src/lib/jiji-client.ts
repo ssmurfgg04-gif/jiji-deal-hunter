@@ -93,6 +93,11 @@ export interface JijiListing {
   is_boost: boolean;
   paid_info: any;
   available_tops_count: number;
+  // Jiji's own market price valuation (free scam signal)
+  price_valuation_low: number | null;
+  price_valuation_high: number | null;
+  price_valuation_label: string | null;
+  price_valuation_url: string | null;
   seller: JijiSeller;
   price_history: { price: number; recorded_at: string }[];
 }
@@ -267,6 +272,48 @@ function parseSeller(raw: any, marketId: string): JijiSeller | null {
   };
 }
 
+function parsePriceValuation(raw: any): {
+  low: number | null;
+  high: number | null;
+  label: string | null;
+  url: string | null;
+} {
+  const pv = raw.price_valuation ?? raw.valuation ?? raw.market_price;
+  if (!pv || typeof pv !== "object") {
+    return { low: null, high: null, label: null, url: null };
+  }
+  const label = pv.label ?? pv.text ?? null;
+  const valueStr = pv.value ?? pv.range ?? "";
+  const url = pv.url ?? null;
+
+  // Parse "KSh 362 K - 425 K" → (362000, 425000)
+  let low: number | null = null;
+  let high: number | null = null;
+  if (typeof valueStr === "string") {
+    // Normalize: "KSh 362 K - 425 K" → "362000 - 425000"
+    const normalized = valueStr
+      .replace(/KSh/gi, "")
+      .replace(/\bK\b/g, "000")
+      .replace(/,/g, "");
+    const nums = normalized.match(/\d[\d\s]*\d|\d/g);
+    if (nums && nums.length >= 2) {
+      const a = parseInt(nums[0].replace(/\s/g, ""), 10);
+      const b = parseInt(nums[1].replace(/\s/g, ""), 10);
+      if (!isNaN(a) && !isNaN(b)) {
+        low = Math.min(a, b);
+        high = Math.max(a, b);
+      }
+    } else if (nums && nums.length === 1) {
+      const a = parseInt(nums[0].replace(/\s/g, ""), 10);
+      if (!isNaN(a)) {
+        low = a;
+        high = a;
+      }
+    }
+  }
+  return { low, high, label, url };
+}
+
 function parseListing(raw: any, marketId: string): JijiListing | null {
   if (!raw || typeof raw !== "object") return null;
   const guid = str(raw.id ?? raw.advert_id ?? raw.uuid ?? raw.guid, "");
@@ -302,7 +349,8 @@ function parseListing(raw: any, marketId: string): JijiListing | null {
   const dateEdited = dateOrNull(raw.date_edited ?? raw.edited_at);
   const dateModerated = dateOrNull(raw.date_moderated ?? raw.moderated_at);
 
-  // Compute days on market if we have date_created
+  const valuation = parsePriceValuation(raw);
+
   let daysOnMarket = num(raw.days_on_market ?? raw.listing_age_days, 0);
   if (daysOnMarket === 0 && dateCreated) {
     daysOnMarket = Math.max(
@@ -338,6 +386,10 @@ function parseListing(raw: any, marketId: string): JijiListing | null {
     is_boost: Boolean(raw.is_boost ?? raw.boosted),
     paid_info: raw.paid_info ?? null,
     available_tops_count: num(raw.available_tops_count, 0),
+    price_valuation_low: valuation.low,
+    price_valuation_high: valuation.high,
+    price_valuation_label: valuation.label,
+    price_valuation_url: valuation.url,
     seller,
     price_history: priceHistory,
   };
@@ -513,7 +565,9 @@ export class JijiClient {
 
   /**
    * Filtered search — exact query + price filters + sort.
-   * GET /api_web/v1/search?q=...&min_price=...&max_price=...&sort=...&page=1
+   *
+   * Recon-verified endpoint: /api_web/v1/listing?query={q}&page=N&price_min=X&price_max=Y&sort=...
+   * (NOT /search — that endpoint has zero Wayback captures and returns 404)
    */
   async search(
     marketId: MarketId,
@@ -526,19 +580,20 @@ export class JijiClient {
     }
   ): Promise<JijiSearchResult | null> {
     const sortMap = {
-      new: "new",
+      new: "created_at:desc",
       price_asc: "price:asc",
       price_desc: "price:desc",
       relevance: "relevance",
     };
-    const raw = await tryLiveApi<any>(marketId, "/search", {
+    const raw = await tryLiveApi<any>(marketId, "/listing", {
       params: {
-        q: opts.q,
-        min_price: opts.minPrice,
-        max_price: opts.maxPrice,
+        query: opts.q,
+        price_min: opts.minPrice,
+        price_max: opts.maxPrice,
         sort: sortMap[opts.sort ?? "relevance"],
         page: opts.page ?? 1,
         ads_per_page: 50,
+        webp: "true",
       },
     });
     if (!raw) return null;

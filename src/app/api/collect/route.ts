@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { runCollection } from "@/lib/collector";
 import { MARKETS, type MarketId } from "@/lib/jiji-client";
+import { cacheInvalidate, cacheInvalidatePrefix } from "@/lib/cache";
 
 /**
  * POST /api/collect
@@ -27,6 +28,13 @@ export async function POST(req: Request) {
       maxPagesPerCategory: body?.maxPagesPerCategory,
       runCensus: body?.runCensus,
     });
+
+    // Invalidate caches after a successful run so the dashboard sees fresh data
+    if (!summary.blocked) {
+      await cacheInvalidate("stats:v2");
+      await cacheInvalidatePrefix("listings:");
+    }
+
     const statusCode = summary.blocked ? 502 : 200;
     return NextResponse.json({ ok: !summary.blocked, summary }, { status: statusCode });
   } catch (e: any) {

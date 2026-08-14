@@ -52,6 +52,10 @@ export interface DealFeatures {
   crossSellerCount: number; // same image under different sellers = stolen photo
   relistCount: number; // same seller, same image, different listing = relist
   crossMarketCount: number; // same image across markets = broker
+
+  // Jiji's own market price valuation (free scam signal)
+  priceValuationLow: number | null;
+  priceValuationHigh: number | null;
 }
 
 export interface DealScoreResult {
@@ -75,6 +79,8 @@ export interface DealScoreResult {
   crossMarketBroker: boolean;
   imageDuplicateCount: number;
   relistCount: number;
+  belowMarketValuation: boolean; // price < Jiji's low valuation band
+  aboveMarketValuation: boolean; // price > Jiji's high valuation band
   factors: Record<string, number | string | boolean>;
 }
 
@@ -178,6 +184,15 @@ export function scoreDeal(f: DealFeatures): DealScoreResult {
   const crossMarketBroker = f.crossMarketCount > 1;
   const crossMarketSignal = crossMarketBroker ? -0.8 : 0;
 
+  // ---- Price valuation signal (recon: Jiji's own market band) ----
+  // Jiji computes a low/high market band. If price is below the low band, that's
+  // a strong scam signal (too good to be true). If above, it's just overpriced.
+  const belowMarketValuation =
+    f.priceValuationLow != null && f.price < f.priceValuationLow * 0.85;
+  const aboveMarketValuation =
+    f.priceValuationHigh != null && f.price > f.priceValuationHigh * 1.15;
+  const valuationSignal = belowMarketValuation ? -1.0 : aboveMarketValuation ? -0.2 : 0;
+
   // ---- Composite score ----
   const raw =
     cappedPriceSignal * 1.2 +
@@ -195,7 +210,8 @@ export function scoreDeal(f: DealFeatures): DealScoreResult {
     boostSignal * 0.4 +
     crossSellerSignal * 1.1 +
     relistSignal * 0.5 +
-    crossMarketSignal * 0.7;
+    crossMarketSignal * 0.7 +
+    valuationSignal * 0.8;
 
   const score = sigmoid(raw);
 
@@ -239,6 +255,10 @@ export function scoreDeal(f: DealFeatures): DealScoreResult {
     cross_seller_count: f.crossSellerCount,
     relist_count: f.relistCount,
     cross_market_broker: crossMarketBroker,
+    below_market_valuation: belowMarketValuation,
+    above_market_valuation: aboveMarketValuation,
+    price_valuation_low: f.priceValuationLow ?? "—",
+    price_valuation_high: f.priceValuationHigh ?? "—",
     raw_score: Number(raw.toFixed(3)),
   };
 
@@ -262,6 +282,8 @@ export function scoreDeal(f: DealFeatures): DealScoreResult {
     crossMarketBroker,
     imageDuplicateCount: f.imageDuplicateCount,
     relistCount: f.relistCount,
+    belowMarketValuation,
+    aboveMarketValuation,
     factors,
   };
 }

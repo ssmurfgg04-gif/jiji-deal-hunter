@@ -194,6 +194,9 @@ export async function findHashDuplicates(
 
 /**
  * Top duplicate hashes across the DB — useful for surfacing scam rings.
+ *
+ * Client-side aggregation (avoids Prisma groupBy having-clause quirks across
+ * versions): fetch all rows, group by hash, count distinct sellers/listings/markets.
  */
 export async function topDuplicateHashes(limit = 20): Promise<
   Array<{
@@ -204,45 +207,58 @@ export async function topDuplicateHashes(limit = 20): Promise<
     marketCount: number;
   }>
 > {
-  // Group by hash, count distinct sellers, listings, markets
-  const rows = await db.imageHash.groupBy({
-    by: ["hash", "hashType"],
-    _count: {
+  const all = await db.imageHash.findMany({
+    select: {
+      hash: true,
+      hashType: true,
       sellerId: true,
       listingId: true,
       marketId: true,
     },
-    orderBy: {
-      _count: {
-        listingId: "desc",
-      },
-    },
-    take: limit,
   });
-  // Prisma groupBy with distinct counts is limited; do it client-side for accuracy
-  const result = [];
-  for (const row of rows) {
-    const distinct = await db.imageHash.findMany({
-      where: { hash: row.hash },
-      select: { sellerId: true, listingId: true, marketId: true },
-    });
-    const sellerSet = new Set(distinct.map((d) => d.sellerId));
-    const listingSet = new Set(distinct.map((d) => d.listingId));
-    const marketSet = new Set(distinct.map((d) => d.marketId));
-    result.push({
-      hash: row.hash,
-      hashType: row.hashType,
-      sellerCount: sellerSet.size,
-      listingCount: listingSet.size,
-      marketCount: marketSet.size,
-    });
+
+  const grouped = new Map<
+    string,
+    {
+      hashType: string;
+      sellers: Set<string>;
+      listings: Set<string>;
+      markets: Set<string>;
+    }
+  >();
+
+  for (const row of all) {
+    let entry = grouped.get(row.hash);
+    if (!entry) {
+      entry = {
+        hashType: row.hashType,
+        sellers: new Set(),
+        listings: new Set(),
+        markets: new Set(),
+      };
+      grouped.set(row.hash, entry);
+    }
+    entry.sellers.add(row.sellerId);
+    entry.listings.add(row.listingId);
+    entry.markets.add(row.marketId);
   }
-  // Sort by combined scam signal: cross-seller first, then cross-market
+
+  const result = Array.from(grouped.entries()).map(([hash, e]) => ({
+    hash,
+    hashType: e.hashType,
+    sellerCount: e.sellers.size,
+    listingCount: e.listings.size,
+    marketCount: e.markets.size,
+  }));
+
+  // Sort by combined scam signal: cross-seller first, then cross-market, then listing count
   result.sort((a, b) => {
     if (b.sellerCount !== a.sellerCount) return b.sellerCount - a.sellerCount;
-    return b.marketCount - a.marketCount;
+    if (b.marketCount !== a.marketCount) return b.marketCount - a.marketCount;
+    return b.listingCount - a.listingCount;
   });
-  return result;
+
+  return result.slice(0, limit);
 }
 
 /**

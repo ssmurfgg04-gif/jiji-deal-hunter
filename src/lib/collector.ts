@@ -141,6 +141,10 @@ async function upsertListing(item: JijiListing): Promise<{ isNew: boolean; marke
       isBoost: item.is_boost,
       paidInfo: item.paid_info ? JSON.stringify(item.paid_info) : null,
       availableTopsCount: item.available_tops_count,
+      priceValuationLow: item.price_valuation_low,
+      priceValuationHigh: item.price_valuation_high,
+      priceValuationLabel: item.price_valuation_label,
+      priceValuationUrl: item.price_valuation_url,
       sellerId: item.seller.id,
       priceHistory: {
         create: item.price_history.map((p) => ({
@@ -172,6 +176,10 @@ async function upsertListing(item: JijiListing): Promise<{ isNew: boolean; marke
       isBoost: item.is_boost,
       paidInfo: item.paid_info ? JSON.stringify(item.paid_info) : null,
       availableTopsCount: item.available_tops_count,
+      priceValuationLow: item.price_valuation_low,
+      priceValuationHigh: item.price_valuation_high,
+      priceValuationLabel: item.price_valuation_label,
+      priceValuationUrl: item.price_valuation_url,
       sellerId: item.seller.id,
     },
   });
@@ -238,6 +246,8 @@ async function scoreAndStore(
     crossSellerCount: dupSignals.crossSellerCount,
     relistCount: dupSignals.relistCount,
     crossMarketCount: dupSignals.crossMarketCount,
+    priceValuationLow: item.price_valuation_low,
+    priceValuationHigh: item.price_valuation_high,
   });
 
   await db.dealScore.upsert({
