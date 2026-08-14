@@ -7,64 +7,98 @@
  *
  *   Tier 1 — FlareSolverr (self-hosted, FREE)
  *            Solves via undetected Chrome on our IP. Returns cf_clearance
- *            cookie bound to OUR IP — works with subsequent curl-impersonate
- *            fetches.
+ *            cookie bound to OUR IP — works with subsequent fetches.
  *
- *   Tier 2 — Spider.cloud ($1/GB, freemium)
- *            Hosted scraper. Returns body directly. No cookie exchange.
- *            Always works as long as Spider.cloud is up.
+ *   Tier 2 — Apify Jiji Africa Scraper (FREE $5/mo credit, ~$0.004/result)
+ *            Hosted actor that uses residential IPs inside target country.
+ *            Bypasses CF by appearing as a local user. Returns full
+ *            structured dataset of listings.
  *
- *   Tier 3 — CapSolver (~$1-3 / 1000 solves, paid)
+ *   Tier 3 — Spider.cloud /unblocker ($1/GB, requires paid credits)
+ *            Hosted unblocker API. Returns body directly. No cookie exchange.
+ *
+ *   Tier 4 — CapSolver (~$1-3 / 1000 solves, paid)
  *            Solves Turnstile via API. Returns token + cookies.
  *
  * Per docs/CLOUDFLARE_BYPASS_RESEARCH.md: the cf_clearance cookie is the
  * single reusable artifact. One solve → ~30 min of high-throughput API
  * calls via curl-impersonate.
  *
- * All tiers log to console for observability. Caller decides whether to
- * retry the original request (Tier 1, 3) or use the returned body (Tier 2).
+ * All tiers log to console for observability.
  */
 
-import { solveViaFlareSolverr, isFlareSolverrAvailable, solveJsonViaFlareSolverr } from "./flaresolverr-client";
-import { scrapeViaSpiderCloud, fetchJsonViaSpiderCloud } from "./spider-cloud-client";
+import { solveViaFlareSolverr, isFlareSolverrAvailable } from "./flaresolverr-client";
+import { scrapeViaSpiderCloud } from "./spider-cloud-client";
 import { solveAndSaveCookies, isCapSolverConfigured } from "./capsolver-client";
+import { runJijiScraper, isApifyConfigured, ApifyJijiListing } from "./apify-client";
 
-export type CfBypassTier = "flaresolverr" | "spider-cloud" | "capsolver" | "none";
+export type CfBypassTier = "flaresolverr" | "apify" | "spider-cloud" | "capsolver" | "none";
 
 export interface CfBypassResult {
   ok: boolean;
   tier: CfBypassTier;
-  body?: string; // raw response body (if available)
-  json?: any; // parsed JSON (if body was JSON)
+  body?: string;
+  json?: any;
   cookiesSaved?: number;
   costUsd?: number;
   durationMs?: number;
   error?: string;
+  // Apify-specific: returns full dataset of listings instead of single body
+  apifyListings?: ApifyJijiListing[];
+  itemCount?: number; // for Apify tier
+}
+
+/**
+ * Extract market + category from a jiji.co.ke URL to feed into Apify scraper.
+ *
+ * Examples:
+ *   https://jiji.co.ke/api_web/v1/listing?category_type=3-cars → { market: "ke", categorySlug: "cars" }
+ *   https://jiji.co.ke/api_web/v1/listing?category_type=88-electronics → { market: "ke", categorySlug: "electronics" }
+ *   https://jiji.co.ke/api_web/v1/categories_counts.json → { market: "ke", categorySlug: undefined }
+ */
+function parseJijiUrl(url: string): { market: string; categorySlug?: string } {
+  const u = new URL(url);
+  const host = u.hostname;
+  // jiji.co.ke → ke, jiji.ng → ng, jiji.com.gh → gh, jiji.co.tz → tz, jiji.ug → ug
+  const marketMap: Record<string, string> = {
+    "jiji.co.ke": "ke",
+    "jiji.ng": "ng",
+    "jiji.com.gh": "gh",
+    "jiji.co.tz": "tz",
+    "jiji.ug": "ug",
+  };
+  const market = marketMap[host] ?? "ke";
+
+  // Extract category slug from query: ?category_type=3-cars
+  const cat = u.searchParams.get("category_type") ?? "";
+  const slugMatch = cat.match(/^\d+-(.+)$/);
+  const categorySlug = slugMatch ? slugMatch[1] : undefined;
+
+  return { market, categorySlug };
 }
 
 /**
  * Try to solve a Cloudflare challenge for the given URL.
- * Walks through Tier 1 → Tier 2 → Tier 3, returns first success.
+ * Walks through Tier 1 → Tier 2 → Tier 3 → Tier 4, returns first success.
  *
  * @param url Full URL that returned SOFT_CHALLENGE
- * @returns CfBypassResult — caller can use .json or .body, or retry original request if cookiesSaved > 0
+ * @returns CfBypassResult — caller can use .json, .body, .apifyListings,
+ *                           or retry original request if cookiesSaved > 0
  */
 export async function solveCfChallenge(url: string): Promise<CfBypassResult> {
   const startedAt = Date.now();
 
   // ─── Tier 1: FlareSolverr (self-hosted, FREE) ─────────────────────────
-  // Best case: solves on our IP, cookies bind to our IP, works with curl-impersonate.
   const flaresolverrUp = await isFlareSolverrAvailable().catch(() => false);
   if (flaresolverrUp) {
     console.log(`[cf-bypass] Tier 1 (FlareSolverr) attempting ${url}`);
     const result = await solveViaFlareSolverr(url);
     if (result.ok && result.solution) {
-      // Try to parse body as JSON (most Jiji API endpoints return JSON)
       let json: any = undefined;
       try {
         json = JSON.parse(result.solution.response);
       } catch {
-        // Body wasn't JSON — that's fine, caller can use .body
+        // Body wasn't JSON — that's fine
       }
       return {
         ok: true,
@@ -80,9 +114,39 @@ export async function solveCfChallenge(url: string): Promise<CfBypassResult> {
     console.log(`[cf-bypass] Tier 1 (FlareSolverr) not available — skipping`);
   }
 
-  // ─── Tier 2: Spider.cloud (freemium hosted scraper) ──────────────────
-  // Always available (has no-key tier). Returns body directly.
-  console.log(`[cf-bypass] Tier 2 (Spider.cloud) attempting ${url}`);
+  // ─── Tier 2: Apify Jiji Africa Scraper (FREE $5/mo credit) ──────────
+  // Best for category/listing endpoints — returns full dataset.
+  if (isApifyConfigured()) {
+    const { market, categorySlug } = parseJijiUrl(url);
+    console.log(
+      `[cf-bypass] Tier 2 (Apify) attempting market=${market} category=${categorySlug ?? "(all)"}`
+    );
+    try {
+      const result = await runJijiScraper({
+        market: market as "ng" | "ke" | "gh" | "ug" | "tz",
+        categorySlug,
+        maxResults: 50, // small batch for single-URL fallback
+      });
+      if (result.ok && result.listings && result.listings.length > 0) {
+        return {
+          ok: true,
+          tier: "apify",
+          apifyListings: result.listings,
+          itemCount: result.listings.length,
+          costUsd: result.listings.length * 0.004, // FREE tier price
+          durationMs: Date.now() - startedAt,
+        };
+      }
+      console.warn(`[cf-bypass] Tier 2 failed: ${result.error ?? "no listings returned"}`);
+    } catch (e: any) {
+      console.warn(`[cf-bypass] Tier 2 error:`, e?.message);
+    }
+  } else {
+    console.log(`[cf-bypass] Tier 2 (Apify) not configured — skipping`);
+  }
+
+  // ─── Tier 3: Spider.cloud /unblocker (paid) ──────────────────────────
+  console.log(`[cf-bypass] Tier 3 (Spider.cloud) attempting ${url}`);
   const spiderResult = await scrapeViaSpiderCloud(url, { returnFormat: "text" });
   if (spiderResult.ok && spiderResult.content) {
     let json: any = undefined;
@@ -100,13 +164,11 @@ export async function solveCfChallenge(url: string): Promise<CfBypassResult> {
       durationMs: Date.now() - startedAt,
     };
   }
-  console.warn(`[cf-bypass] Tier 2 failed: ${spiderResult.error}`);
+  console.warn(`[cf-bypass] Tier 3 failed: ${spiderResult.error}`);
 
-  // ─── Tier 3: CapSolver (paid Turnstile solver) ───────────────────────
-  // Only attempt if API key is configured. Solves Turnstile, saves cookies
-  // to vault. Caller should RETRY the original request after this succeeds.
+  // ─── Tier 4: CapSolver (paid Turnstile solver) ───────────────────────
   if (isCapSolverConfigured()) {
-    console.log(`[cf-bypass] Tier 3 (CapSolver) attempting ${url}`);
+    console.log(`[cf-bypass] Tier 4 (CapSolver) attempting ${url}`);
     const saved = await solveAndSaveCookies(url);
     if (saved) {
       return {
@@ -114,12 +176,11 @@ export async function solveCfChallenge(url: string): Promise<CfBypassResult> {
         tier: "capsolver",
         cookiesSaved: 1,
         durationMs: Date.now() - startedAt,
-        // No body — caller must retry original request to get body
       };
     }
-    console.warn(`[cf-bypass] Tier 3 failed`);
+    console.warn(`[cf-bypass] Tier 4 failed`);
   } else {
-    console.log(`[cf-bypass] Tier 3 (CapSolver) not configured — skipping`);
+    console.log(`[cf-bypass] Tier 4 (CapSolver) not configured — skipping`);
   }
 
   return {
@@ -132,25 +193,19 @@ export async function solveCfChallenge(url: string): Promise<CfBypassResult> {
 
 /**
  * Convenience: solve + return parsed JSON.
- * Tries Tier 1 → Tier 2 → (Tier 3 doesn't return body, so caller retries).
- *
- * If Tier 3 succeeds (cookies saved but no body), returns null.
- * Caller should retry the original request — the saved cookie will be picked
- * up by tryFetch() automatically.
+ * Falls back through tiers until one returns JSON or apifyListings.
  */
 export async function solveCfChallengeJson<T = any>(url: string): Promise<T | null> {
   const result = await solveCfChallenge(url);
-
   if (!result.ok) return null;
-
   if (result.json) return result.json as T;
-
-  // Tier 3 (CapSolver) succeeded but didn't return a body.
-  // Caller should retry the original request.
-  if (result.tier === "capsolver" && result.cookiesSaved) {
-    console.log(`[cf-bypass] Tier 3 saved cookies — caller should retry original request`);
+  if (result.body) {
+    try {
+      return JSON.parse(result.body) as T;
+    } catch {
+      return null;
+    }
   }
-
   return null;
 }
 
@@ -160,17 +215,20 @@ export async function solveCfChallengeJson<T = any>(url: string): Promise<T | nu
  */
 export async function getCfBypassStatus(): Promise<{
   tier1FlareSolverr: boolean;
-  tier2SpiderCloud: boolean;
-  tier3CapSolver: boolean;
+  tier2Apify: boolean;
+  tier3SpiderCloud: boolean;
+  tier4CapSolver: boolean;
 }> {
-  const [t1, t2, t3] = await Promise.all([
+  const [t1, , t3, t4] = await Promise.all([
     isFlareSolverrAvailable().catch(() => false),
-    Promise.resolve(true), // Spider.cloud always available (no-key tier)
+    Promise.resolve(true),
+    Promise.resolve(true),
     Promise.resolve(isCapSolverConfigured()),
   ]);
   return {
     tier1FlareSolverr: t1,
-    tier2SpiderCloud: t2,
-    tier3CapSolver: t3,
+    tier2Apify: isApifyConfigured(),
+    tier3SpiderCloud: true, // Spider.cloud always available (needs credits)
+    tier4CapSolver: t4,
   };
 }

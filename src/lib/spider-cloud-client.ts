@@ -1,23 +1,20 @@
 /**
- * Spider.cloud Client — Tier 2 Cloudflare bypass (hosted, freemium).
+ * Spider.cloud Client — Tier 3 Cloudflare bypass (hosted, paid).
  *
- * Spider.cloud is a hosted scraping API with a dedicated jiji.co.ke scraper.
- * They handle browser rendering, residential proxies, and CF bypass on their
- * side. We just send a URL, they return the body.
+ * Per https://spider.cloud/agent-skill/SKILL.md:
+ *   - POST /scrape — one page, basic HTTP fetch (no JS, no CF bypass)
+ *   - POST /unblocker — fetch one page through Spider's anti-bot bypass
+ *                       (proxy rotation, fingerprinting, JS challenge solving)
  *
- * Pricing: $1/GB + $0.001/CPU-minute. Free balance on signup, no card required.
- * No-key endpoint works (rate-limited) — useful for testing.
+ * For CF-protected sites like jiji.co.ke, we MUST use /unblocker.
  *
- * API: POST https://api.spider.cloud/scrape
- *   { "url": "https://jiji.co.ke/...", "return_format": "markdown" | "html" | "text" }
+ * Pricing: $1/GB + $0.001/CPU-min. Requires paid credits (free tier doesn't
+ * cover /unblocker — verified: returns 402 "credits_required").
  *
- * Auth: Bearer SPIDER_API_KEY env var. Without key, falls back to free no-key tier.
- *
- * Per docs/CLOUDFLARE_BYPASS_RESEARCH.md section "Tier 2": verified working
- * against jiji.co.ke (returns structured JSON with cost breakdown).
+ * Auth: Bearer SPIDER_API_KEY env var.
  */
 
-const SPIDER_API_URL = "https://api.spider.cloud/scrape";
+const SPIDER_API_URL = "https://api.spider.cloud";
 const SPIDER_API_KEY = process.env.SPIDER_API_KEY;
 const SPIDER_TIMEOUT_MS = parseInt(process.env.SPIDER_TIMEOUT_MS ?? "90000", 10);
 
@@ -51,13 +48,16 @@ export async function isSpiderCloudConfigured(): Promise<boolean> {
  */
 export async function scrapeViaSpiderCloud(
   url: string,
-  options: { returnFormat?: "markdown" | "html" | "text"; request?: "http" | "chrome" } = {}
+  options: { returnFormat?: "markdown" | "html" | "text"; request?: "http" | "browser" | "smart" } = {}
 ): Promise<SpiderCloudResult> {
-  // Default to "chrome" — required for CF-protected sites like jiji.co.ke.
-  // Per Spider.cloud error: "Cloudflare detected — set 'request' to 'chrome'
-  // to bypass JavaScript-protected pages."
+  // Per Spider.cloud SKILL.md: /unblocker is the endpoint for bot-walled sites.
+  // It handles proxy rotation + fingerprinting + JS challenge solving.
+  // /scrape is for plain pages only.
+  const endpoint = "/unblocker";
   const returnFormat = options.returnFormat ?? "markdown";
-  const request = options.request ?? "chrome";
+  // /unblocker handles request mode internally — but if specified, "browser"
+  // is preferred for JS-heavy CF challenges.
+  const request = options.request ?? "browser";
   const startedAt = Date.now();
 
   try {
@@ -71,7 +71,7 @@ export async function scrapeViaSpiderCloud(
       headers["Authorization"] = `Bearer ${SPIDER_API_KEY}`;
     }
 
-    const r = await fetch(SPIDER_API_URL, {
+    const r = await fetch(`${SPIDER_API_URL}${endpoint}`, {
       method: "POST",
       headers,
       body: JSON.stringify({ url, return_format: returnFormat, request }),

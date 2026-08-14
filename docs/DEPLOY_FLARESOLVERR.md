@@ -124,29 +124,50 @@ For the next ~30 minutes, all API calls will use the saved cookie — no FlareSo
 
 ---
 
-## Optional: Sign up for Tier 2 + Tier 3 (paid fallbacks)
+## Optional: Sign up for Tier 2 + Tier 3 + Tier 4 (paid fallbacks)
 
-> **⚠️ Manual signup required.** Both Spider.cloud and Apify protect their
-> signup pages with CAPTCHAs (Turnstile / reCAPTCHA v2). Automated signup
-> via agent-browser + temp email was attempted and blocked. You'll need to
-> sign up manually via a real browser.
+> **⚠️ Manual signup required for some.** Spider.cloud protects their signup
+> with Turnstile; Apify protects theirs with reCAPTCHA v2. agent-browser
+> + temp email was blocked on both. CapSolver signup worked via direct API.
 
-### Tier 2 — Spider.cloud (freemium, $1/GB)
+### Tier 2 — Apify Jiji Africa Scraper (FREE $5/mo credit, ~$0.004/result)
+1. Go to https://console.apify.com in a real browser
+2. Sign up (Google OAuth works — bypasses CAPTCHA)
+3. Verify email, log in
+4. Get your API token: Account → Integrations → API tokens
+5. Get your user ID: Account → Profile (URL contains it)
+6. Get your proxy password: Account → Proxy → "Password" field
+7. Add to `.env`:
+   ```
+   APIFY_API_TOKEN=apify_api_xxxxx
+   APIFY_USER_ID=xxxxxxxxx
+   APIFY_PROXY_PASSWORD=apify_proxy_xxxxx
+   ```
+
+**Verified working**: Tested `logiover/jiji-africa-scraper` actor on jiji.ng cars
+category — returned 100 real listings in 11 seconds (Toyota Camry ₦7.8M, Lexus
+GX 460 ₦26.5M, etc.). Uses residential IPs inside target country = CF bypass.
+
+**FREE plan covers**: $5/mo credit (~1250 results) + 1M unblocker units +
+5 datacenter proxies + residential proxy access + 20GB residential traffic.
+
+### Tier 3 — Spider.cloud /unblocker (paid, $1/GB)
 1. Go to https://spider.cloud in a real browser
 2. Click "Register" — solve the Turnstile challenge manually
 3. Verify email, log in
-4. Get your API key from the dashboard
-5. Add to `.env`:
+4. Add credits at https://spider.cloud/credits/new (min $5)
+5. Get your API key from dashboard
+6. Add to `.env`:
    ```
-   SPIDER_API_KEY=spider-xxxxxxxxxxxx
+   SPIDER_API_KEY=sk-xxxxxxxxxxxx
    ```
 
-**Note**: Spider.cloud's no-key tier does NOT bypass CF (verified — returns
-403 + "Cloudflare detected — set 'request' to 'chrome'"). You need a paid
-API key for the `request: chrome` mode to actually invoke their browser
-rendering + residential proxies. Free signup balance covers ~35K chrome requests.
+**IMPORTANT**: Spider.cloud's free tier does NOT cover `/unblocker` (verified:
+returns 402 "credits_required"). You must add paid credits. Per
+https://spider.cloud/agent-skill/SKILL.md, `/unblocker` is the correct
+endpoint for bot-walled sites (NOT `/scrape`).
 
-### Tier 3 — CapSolver (paid, ~$1-3 per 1000 solves)
+### Tier 4 — CapSolver (paid, ~$1-3 per 1000 solves)
 1. Go to https://www.capsolver.com in a real browser
 2. Sign up — use promo code `CURL` for +6% balance
 3. Add credit (minimum $10)
@@ -155,11 +176,6 @@ rendering + residential proxies. Free signup balance covers ~35K chrome requests
    ```
    CAPSOLVER_API_KEY=CAP-xxxxxxxxxxxx
    ```
-
-### Alternative — Apify Jiji Scraper (paid, $2 / 1000 results)
-If all the above fail, Apify has a ready-made Jiji scraper at
-https://apify.com/stealth_mode/jiji-product-search-scraper. Sign up
-(free tier $5/mo credit), search for "Jiji" in the store, run the actor.
 
 ---
 

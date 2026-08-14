@@ -374,11 +374,12 @@ async function tryLiveApi<T>(
     return null;
   }
 
-  // SOFT_CHALLENGE — solvable via FlareSolverr / Spider.cloud / CapSolver.
+  // SOFT_CHALLENGE — solvable via FlareSolverr / Apify / Spider.cloud / CapSolver.
   // Per docs/CLOUDFLARE_BYPASS_RESEARCH.md: tiered fallback chain.
   //   Tier 1: FlareSolverr (self-hosted, FREE) — solves on our IP, saves cf_clearance
-  //   Tier 2: Spider.cloud (freemium) — returns body directly
-  //   Tier 3: CapSolver (paid) — solves Turnstile, saves cookies
+  //   Tier 2: Apify Jiji Africa Scraper (FREE $5/mo credit) — residential IPs, full dataset
+  //   Tier 3: Spider.cloud /unblocker (paid) — returns body directly
+  //   Tier 4: CapSolver (paid) — solves Turnstile, saves cookies
   console.warn(`[jiji-client] Cloudflare SOFT_CHALLENGE on ${url.pathname} — invoking CF bypass chain...`);
 
   try {
@@ -390,7 +391,52 @@ async function tryLiveApi<T>(
           `(${cfResult.durationMs}ms, cookiesSaved=${cfResult.cookiesSaved ?? 0})`
       );
 
-      // Tier 1 & 2: body is available — return parsed JSON directly
+      // Tier 2 (Apify): returns full dataset of listings — caller decides how
+      // to handle. Caller is typically fetchCategoryFeed() which expects
+      // { adverts: [...] } shape; we convert Apify format to that shape.
+      if (cfResult.apifyListings && cfResult.apifyListings.length > 0) {
+        console.log(
+          `[jiji-client] Apify returned ${cfResult.apifyListings.length} listings — ` +
+            `converting to Jiji API shape`
+        );
+        // Convert Apify listings to the shape Jiji's /api_web/v1/listing returns
+        const fakeResponse: any = {
+          adverts: cfResult.apifyListings.map((a) => ({
+            id: a.guid,
+            advert_id: a.advertId ?? a.guid,
+            guid: a.guid,
+            title: a.title,
+            url: a.url,
+            price_obj: { price: a.price, currency: a.currency },
+            // Apify output has flattened seller fields (sellerName, sellerId, etc.)
+            // Jiji API expects nested user object
+            user: {
+              id: a.sellerId,
+              name: a.sellerName,
+              rating: a.sellerRating,
+              verified: a.isVerifiedId,
+              verified_badge: a.isVerifiedId,
+            },
+            // Apify returns imageUrls as comma-separated string
+            images: (a.imageUrls ?? "").split(",").filter(Boolean).map((u: string) => ({ url: u.trim() })),
+            count_views: 0,
+            fav_count: 0,
+            status: a.status ?? "active",
+            is_boost: a.isPromoted ?? false,
+            date_created: a.scrapedAt,
+            date_edited: null,
+            date_moderated: null,
+            category: { slug: a.categorySlug, id: a.categoryId, name: a.category },
+            region: { name: a.region },
+          })),
+          // Apify doesn't paginate — single batch
+          next_url: null,
+        };
+        recordLive();
+        return fakeResponse as T;
+      }
+
+      // Tier 1 & 3: body is available — return parsed JSON directly
       if (cfResult.json) {
         recordLive();
         return cfResult.json as T;
@@ -405,7 +451,7 @@ async function tryLiveApi<T>(
         }
       }
 
-      // Tier 3 (CapSolver): cookies saved but no body — retry original fetch
+      // Tier 4 (CapSolver): cookies saved but no body — retry original fetch
       // The saved cf_clearance will be picked up by tryFetch() automatically.
       if (cfResult.cookiesSaved && cfResult.cookiesSaved > 0) {
         console.log(`[jiji-client] Retrying original request with new cf_clearance cookie...`);
