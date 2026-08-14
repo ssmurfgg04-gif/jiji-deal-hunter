@@ -30,9 +30,10 @@ async function main() {
   console.log(`[rescore] Found ${listings.length} listings`);
 
   // Compute per-category median (in-memory)
+  // Convert BigInt prices to Number for median computation
   const byCategory: Record<string, number[]> = {};
   for (const l of listings) {
-    (byCategory[l.category] ??= []).push(l.price);
+    (byCategory[l.category] ??= []).push(Number(l.price));
   }
   const medians: Record<string, number> = {};
   for (const [cat, prices] of Object.entries(byCategory)) {
@@ -66,7 +67,7 @@ async function main() {
 
     const phoneLeaked = l.seller.hidePhone && !!l.seller.phone;
     const result = scoreDeal({
-      price: l.price,
+      price: Number(l.price),
       marketMedian,
       sellerListingCount: l.seller.totalListings,
       sellerAccountAgeDays: l.seller.accountAgeDays,
@@ -94,8 +95,8 @@ async function main() {
       crossSellerCount: dupSignals.crossSellerCount,
       relistCount: dupSignals.relistCount,
       crossMarketCount: dupSignals.crossMarketCount,
-      priceValuationLow: l.priceValuationLow,
-      priceValuationHigh: l.priceValuationHigh,
+      priceValuationLow: l.priceValuationLow != null ? Number(l.priceValuationLow) : null,
+      priceValuationHigh: l.priceValuationHigh != null ? Number(l.priceValuationHigh) : null,
     });
 
     await db.dealScore.upsert({

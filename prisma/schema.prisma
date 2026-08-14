@@ -86,7 +86,7 @@ model Listing {
   market            Market   @relation(fields: [marketId], references: [id])
   guid              String   // Jiji's listing GUID
   title             String
-  price             Int
+  price             BigInt   // BigInt to handle large NGN/TZS prices (up to 9.9 trillion)
   currency          String   @default("KES")
   category          String   // slug
   categoryId       Int?
@@ -113,8 +113,8 @@ model Listing {
   availableTopsCount Int     @default(0) // commercial intent
 
   // Jiji's own market price valuation (free scam signal)
-  priceValuationLow   Int?
-  priceValuationHigh  Int?
+  priceValuationLow   BigInt?
+  priceValuationHigh  BigInt?
   priceValuationLabel String?  // "below market" | "above market" | ...
   priceValuationUrl   String?  // round-trips filter state for verification
 
@@ -140,7 +140,7 @@ model PriceHistory {
   id          String   @id @default(cuid())
   listingId   String
   listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  price       Int
+  price       BigInt   // BigInt to match Listing.price
   recordedAt  DateTime @default(now())
 
   @@index([listingId])

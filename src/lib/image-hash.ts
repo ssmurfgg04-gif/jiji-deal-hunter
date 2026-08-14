@@ -90,38 +90,88 @@ export async function indexListingImages(params: {
   imageUrls: string[];
 }): Promise<{ indexed: number; unique: number }> {
   const { marketId, listingId, sellerId, imageUrls } = params;
-  let indexed = 0;
   const seenHashes = new Set<string>();
+  const toCreate: Array<{
+    marketId: string;
+    listingId: string;
+    sellerId: string;
+    hash: string;
+    hashType: string;
+    url: string;
+  }> = [];
 
+  // Extract hashes client-side, dedup per-listing
   for (const url of imageUrls) {
     const extracted = extractImageHash(url);
     if (!extracted) continue;
     if (seenHashes.has(extracted.hash)) continue;
     seenHashes.add(extracted.hash);
-
-    try {
-      await db.imageHash.upsert({
-        where: {
-          marketId_listingId_hash: { marketId, listingId, hash: extracted.hash },
-        },
-        create: {
-          marketId,
-          listingId,
-          sellerId,
-          hash: extracted.hash,
-          hashType: extracted.hashType,
-          url,
-        },
-        update: {
-          // already indexed — no-op
-        },
-      });
-      indexed++;
-    } catch {
-      // ignore individual failures (e.g. seller/listing not yet committed)
-    }
+    toCreate.push({
+      marketId,
+      listingId,
+      sellerId,
+      hash: extracted.hash,
+      hashType: extracted.hashType,
+      url,
+    });
   }
-  return { indexed, unique: seenHashes.size };
+
+  if (toCreate.length === 0) {
+    return { indexed: 0, unique: 0 };
+  }
+
+  // BATCHED: check which hashes already exist, then createMany only the new ones.
+  // SQLite via Prisma 6 doesn't support skipDuplicates on createMany, so we
+  // query existing hashes first and exclude them from the batch insert.
+  // For 12 images per listing: was 12 round-trips (one upsert per image),
+  // now 2 round-trips (1 findMany + 1 createMany) regardless of image count.
+  const existingHashes = new Set(
+    (
+      await db.imageHash.findMany({
+        where: {
+          listingId,
+          hash: { in: toCreate.map((r) => r.hash) },
+        },
+        select: { hash: true },
+      })
+    ).map((r) => r.hash)
+  );
+
+  const newRows = toCreate.filter((r) => !existingHashes.has(r.hash));
+
+  if (newRows.length === 0) {
+    return { indexed: 0, unique: seenHashes.size };
+  }
+
+  try {
+    const result = await db.imageHash.createMany({
+      data: newRows,
+    });
+    return { indexed: result.count, unique: seenHashes.size };
+  } catch {
+    // Fallback: if createMany fails (e.g. listing/seller not yet committed),
+    // try sequential upserts — slower but handles ordering issues
+    let indexed = 0;
+    for (const row of newRows) {
+      try {
+        await db.imageHash.upsert({
+          where: {
+            marketId_listingId_hash: {
+              marketId: row.marketId,
+              listingId: row.listingId,
+              hash: row.hash,
+            },
+          },
+          create: row,
+          update: {},
+        });
+        indexed++;
+      } catch {
+        // ignore
+      }
+    }
+    return { indexed, unique: seenHashes.size };
+  }
 }
 
 export interface ImageDuplicateReport {

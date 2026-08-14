@@ -27,6 +27,7 @@ import { scoreDeal } from "./deal-scorer";
 import { medianPrice } from "./price-analysis";
 import { indexListingImages, getListingDuplicateSignals } from "./image-hash";
 import { checkpointDb } from "./db";
+import { getCategoryMedian, invalidateAllMedians } from "./median-cache";
 
 // Default: top categories to scrape per market when none specified.
 // Cat IDs are Jiji's numeric IDs (3 = cars in KE etc.) — the actual mapping
@@ -101,13 +102,9 @@ async function upsertSeller(seller: JijiSeller): Promise<boolean> {
 }
 
 async function upsertListing(item: JijiListing): Promise<{ isNew: boolean; marketMedian: number }> {
-  const sameCategory = await db.listing.findMany({
-    where: { category: item.category, marketId: item.marketId },
-    select: { price: true },
-  });
-  const marketPrices = sameCategory.map((l) => l.price);
-  if (marketPrices.length === 0) marketPrices.push(item.price);
-  const marketMedian = medianPrice(marketPrices);
+  // Use incremental median cache instead of per-listing findMany.
+  // Was O(N) per listing (27ms × N at scale). Now O(1) with 60s TTL.
+  const marketMedian = await getCategoryMedian(item.marketId, item.category, item.price);
 
   const existing = await db.listing.findUnique({ where: { id: item.id } });
   const isNew = !existing;
@@ -119,7 +116,7 @@ async function upsertListing(item: JijiListing): Promise<{ isNew: boolean; marke
       marketId: item.marketId,
       guid: item.guid,
       title: item.title,
-      price: item.price,
+      price: BigInt(item.price),
       currency: item.currency,
       category: item.category,
       categoryId: item.category_id,
@@ -142,21 +139,21 @@ async function upsertListing(item: JijiListing): Promise<{ isNew: boolean; marke
       isBoost: item.is_boost,
       paidInfo: item.paid_info ? JSON.stringify(item.paid_info) : null,
       availableTopsCount: item.available_tops_count,
-      priceValuationLow: item.price_valuation_low,
-      priceValuationHigh: item.price_valuation_high,
+      priceValuationLow: item.price_valuation_low != null ? BigInt(item.price_valuation_low) : null,
+      priceValuationHigh: item.price_valuation_high != null ? BigInt(item.price_valuation_high) : null,
       priceValuationLabel: item.price_valuation_label,
       priceValuationUrl: item.price_valuation_url,
       sellerId: item.seller.id,
       priceHistory: {
         create: item.price_history.map((p) => ({
-          price: p.price,
+          price: BigInt(p.price),
           recordedAt: new Date(p.recorded_at),
         })),
       },
     },
     update: {
       title: item.title,
-      price: item.price,
+      price: BigInt(item.price),
       currency: item.currency,
       condition: item.condition,
       location: item.location,
@@ -177,8 +174,8 @@ async function upsertListing(item: JijiListing): Promise<{ isNew: boolean; marke
       isBoost: item.is_boost,
       paidInfo: item.paid_info ? JSON.stringify(item.paid_info) : null,
       availableTopsCount: item.available_tops_count,
-      priceValuationLow: item.price_valuation_low,
-      priceValuationHigh: item.price_valuation_high,
+      priceValuationLow: item.price_valuation_low != null ? BigInt(item.price_valuation_low) : null,
+      priceValuationHigh: item.price_valuation_high != null ? BigInt(item.price_valuation_high) : null,
       priceValuationLabel: item.price_valuation_label,
       priceValuationUrl: item.price_valuation_url,
       sellerId: item.seller.id,
@@ -191,9 +188,9 @@ async function upsertListing(item: JijiListing): Promise<{ isNew: boolean; marke
       orderBy: { recordedAt: "desc" },
     });
     const expectedLatest = item.price_history[item.price_history.length - 1]?.price;
-    if (latestHistory?.price !== expectedLatest && expectedLatest != null) {
+    if (latestHistory?.price !== BigInt(expectedLatest) && expectedLatest != null) {
       await db.priceHistory.create({
-        data: { listingId: item.id, price: expectedLatest, recordedAt: new Date() },
+        data: { listingId: item.id, price: BigInt(expectedLatest), recordedAt: new Date() },
       });
     }
   }
@@ -435,6 +432,8 @@ export async function runCollection(opts: CollectionOptions = {}): Promise<Colle
     // stay fast and the WAL file doesn't grow unbounded.
     if (itemsCollected > 0 || itemsUpdated > 0) {
       await checkpointDb();
+      // Invalidate the category median cache so subsequent reads get fresh medians
+      invalidateAllMedians();
     }
 
     return {

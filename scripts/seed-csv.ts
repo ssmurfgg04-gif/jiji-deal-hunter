@@ -472,7 +472,7 @@ async function main() {
           marketId: MARKET_ID,
           guid: row.guid,
           title: row.title,
-          price: row.price,
+          price: BigInt(row.price),
           currency: "KES",
           category: row.category_name,
           categoryId: row.category_id,
@@ -490,7 +490,7 @@ async function main() {
           isBoost: !!row.boost_badge,
           sellerId,
           priceHistory: {
-            create: [{ price: row.price, recordedAt: parseDate(row.capture_ts) ?? new Date() }],
+            create: [{ price: BigInt(row.price), recordedAt: parseDate(row.capture_ts) ?? new Date() }],
           },
         },
       });

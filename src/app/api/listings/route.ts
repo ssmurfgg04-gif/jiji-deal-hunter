@@ -102,9 +102,10 @@ export async function GET(req: Request) {
   });
 
   // Compute market median per category (in-memory grouping)
+  // Convert BigInt prices to Number for median computation and JSON response
   const byCategory: Record<string, number[]> = {};
   listings.forEach((l) => {
-    (byCategory[l.category] ??= []).push(l.price);
+    (byCategory[l.category] ??= []).push(Number(l.price));
   });
   const medians: Record<string, number> = {};
   for (const [cat, prices] of Object.entries(byCategory)) {
@@ -121,7 +122,7 @@ export async function GET(req: Request) {
       marketId: l.marketId,
       guid: l.guid,
       title: l.title,
-      price: l.price,
+      price: Number(l.price),
       currency: l.currency,
       category: l.category,
       categoryId: l.categoryId,

@@ -32,7 +32,7 @@ export async function GET(req: Request) {
     listing: {
       id: listing.id,
       title: listing.title,
-      currentPrice: listing.price,
+      currentPrice: Number(listing.price),
       category: listing.category,
       condition: listing.condition,
       url: listing.url,
@@ -40,7 +40,7 @@ export async function GET(req: Request) {
     seller: listing.seller,
     score: listing.dealScore,
     history: history.map((h) => ({
-      price: h.price,
+      price: Number(h.price),
       recordedAt: h.recordedAt,
     })),
   });
