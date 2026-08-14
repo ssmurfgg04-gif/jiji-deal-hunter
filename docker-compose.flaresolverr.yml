@@ -1,0 +1,47 @@
+# FlareSolverr — Cloudflare challenge solver (Tier 1)
+# Per docs/CLOUDFLARE_BYPASS_RESEARCH.md section "Tier 1"
+#
+# Deploy:
+#   docker compose -f docker-compose.flaresolverr.yml up -d
+#
+# Verify:
+#   curl http://localhost:8191/
+#
+# Logs:
+#   docker compose -f docker-compose.flaresolverr.yml logs -f
+
+services:
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    ports:
+      - "8191:8191"
+    environment:
+      # The log level: debug | info | warning | error
+      - LOG_LEVEL=info
+      # Timezone for log timestamps
+      - TZ=UTC
+      # Optional: force a specific browser user-agent
+      # - USER_AGENT=
+      # Optional: hide browser window (set to false for debugging)
+      - HEADLESS=true
+      # Optional: proxy all FlareSolverr requests through a residential proxy
+      # (only set if you have a residential proxy that's NOT banned)
+      # - PROXY_URL=http://user:pass@residential.proxy:8080
+    restart: unless-stopped
+    # FlareSolverr needs ~512MB RAM for the headless Chrome instance
+    mem_limit: 1g
+    mem_reservation: 512m
+    # Health check — if it fails 3x in a row, container restarts
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8191/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    # Volumes for persistent Chrome profile (faster cold starts)
+    volumes:
+      - flaresolverr_data:/app/data
+
+volumes:
+  flaresolverr_data:

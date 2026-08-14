@@ -374,8 +374,57 @@ async function tryLiveApi<T>(
     return null;
   }
 
-  // SOFT_CHALLENGE — solvable in principle. Rotate through up to 3 proxies.
-  console.warn(`[jiji-client] Cloudflare SOFT_CHALLENGE on ${url.pathname} — rotating proxies...`);
+  // SOFT_CHALLENGE — solvable via FlareSolverr / Spider.cloud / CapSolver.
+  // Per docs/CLOUDFLARE_BYPASS_RESEARCH.md: tiered fallback chain.
+  //   Tier 1: FlareSolverr (self-hosted, FREE) — solves on our IP, saves cf_clearance
+  //   Tier 2: Spider.cloud (freemium) — returns body directly
+  //   Tier 3: CapSolver (paid) — solves Turnstile, saves cookies
+  console.warn(`[jiji-client] Cloudflare SOFT_CHALLENGE on ${url.pathname} — invoking CF bypass chain...`);
+
+  try {
+    const { solveCfChallenge } = await import("./cf-bypass");
+    const cfResult = await solveCfChallenge(url.toString());
+    if (cfResult.ok) {
+      console.log(
+        `[jiji-client] CF bypass succeeded via ${cfResult.tier} ` +
+          `(${cfResult.durationMs}ms, cookiesSaved=${cfResult.cookiesSaved ?? 0})`
+      );
+
+      // Tier 1 & 2: body is available — return parsed JSON directly
+      if (cfResult.json) {
+        recordLive();
+        return cfResult.json as T;
+      }
+      if (cfResult.body) {
+        try {
+          const parsed = JSON.parse(cfResult.body) as T;
+          recordLive();
+          return parsed;
+        } catch {
+          // Body wasn't JSON — fall through to retry
+        }
+      }
+
+      // Tier 3 (CapSolver): cookies saved but no body — retry original fetch
+      // The saved cf_clearance will be picked up by tryFetch() automatically.
+      if (cfResult.cookiesSaved && cfResult.cookiesSaved > 0) {
+        console.log(`[jiji-client] Retrying original request with new cf_clearance cookie...`);
+        const retryResult = await tryFetch<T>(marketId, url.toString(), null, opts.timeoutMs);
+        if (retryResult !== "CLOUDFLARE_BLOCKED" &&
+            retryResult !== "CLOUDFLARE_SOFT_CHALLENGE" &&
+            retryResult !== "CLOUDFLARE_HARD_BLOCK") {
+          return retryResult;
+        }
+      }
+    } else {
+      console.warn(`[jiji-client] CF bypass chain exhausted: ${cfResult.error}`);
+    }
+  } catch (e: any) {
+    console.warn(`[jiji-client] CF bypass chain error:`, e?.message);
+  }
+
+  // CF bypass failed — fall through to proxy rotation as last resort.
+  console.warn(`[jiji-client] Falling back to proxy rotation...`);
 
   // Lazy seed on first block (idempotent — skips existing entries)
   await seedDefaultProxies().catch(() => null);
@@ -410,7 +459,7 @@ async function tryLiveApi<T>(
   if (hardBlocked && proxiesTried > 0) {
     recordFailure("blocked", `All ${proxiesTried} proxies HARD_BLOCKED — need residential IPs`);
   } else {
-    recordFailure("blocked", `All ${proxiesTried} proxies exhausted (Cloudflare SOFT_CHALLENGE)`);
+    recordFailure("blocked", `CF bypass + ${proxiesTried} proxies exhausted (Cloudflare SOFT_CHALLENGE)`);
   }
   return null;
 }
