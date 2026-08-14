@@ -2,13 +2,19 @@
   "version": "v3",
   "target": "stale_listing (temporal bootstrap; will switch to motivated_seller once live data accumulates)",
   "split": "time-based (cutoff=2024-06-01)",
-  "auc": 0.7512626262626262,
-  "accuracy": 0.6777777777777778,
-  "baseline_accuracy": 0.7333333333333333,
-  "lift": -0.05555555555555547,
-  "n_train": 360,
-  "n_val": 90,
-  "best_iteration": 47,
+  "auc": 0.681640625,
+  "accuracy": 0.9038461538461539,
+  "baseline_accuracy": 0.9230769230769231,
+  "lift": -0.019230769230769273,
+  "f1": 0.44444444395061733,
+  "optimal_threshold": 0.5746369957923889,
+  "accuracy_at_0_5": 0.8653846153846154,
+  "f1_at_0_5": 0.36363636363636365,
+  "n_train": 412,
+  "n_val": 104,
+  "n_positive_train": 25,
+  "n_positive_val": 8,
+  "best_iteration": 6,
   "features_excluded": [
     "price_vs_median (v1 leakage source)",
     "price_delta_pct, days_listed, price_volatility, price_drop_rate (target components)",
@@ -17,43 +23,43 @@
   "top_features": [
     {
       "name": "price",
-      "gain": 2.38077712059021
-    },
-    {
-      "name": "verified_badge",
-      "gain": 1.6570663452148438
-    },
-    {
-      "name": "is_boost",
-      "gain": 1.4807219505310059
-    },
-    {
-      "name": "dealer_ratio",
-      "gain": 1.369014024734497
-    },
-    {
-      "name": "image_count",
-      "gain": 1.3535100221633911
+      "gain": 33.611480712890625
     },
     {
       "name": "fav_count",
-      "gain": 1.3442898988723755
+      "gain": 21.724584579467773
     },
     {
       "name": "views",
-      "gain": 1.1008121967315674
+      "gain": 21.048006057739258
     },
     {
-      "name": "seller_rating",
-      "gain": 1.0975710153579712
+      "name": "dealer_ratio",
+      "gain": 17.815265655517578
     },
     {
-      "name": "is_dealer",
-      "gain": 1.0830799341201782
+      "name": "is_boost",
+      "gain": 16.631052017211914
+    },
+    {
+      "name": "capture_count",
+      "gain": 13.467594146728516
     },
     {
       "name": "days_on_market",
-      "gain": 1.054591417312622
+      "gain": 9.906604766845703
+    },
+    {
+      "name": "has_phone",
+      "gain": 9.855603218078613
+    },
+    {
+      "name": "seller_adverts_count",
+      "gain": 9.854926109313965
+    },
+    {
+      "name": "image_count",
+      "gain": 5.116669178009033
     }
   ]
 }

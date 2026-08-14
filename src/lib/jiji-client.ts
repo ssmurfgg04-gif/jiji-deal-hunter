@@ -161,17 +161,26 @@ export async function getLiveApiStatus(): Promise<LiveApiStatus> {
  * spreads the signal — combined with the 1.2s pacing, this is what's kept
  * the collector from being WAF-blocked in production.
  *
- * Add more UAs here as browsers release new versions; keep them recent
- * (Cloudflare flags outdated Chrome UAs).
+ * Updated 2026-08 to current stable browser versions. Cloudflare flags
+ * outdated Chrome UAs (more than ~6 months old) as suspicious — keep these
+ * refreshed every quarter. Source: https://scrapfly.io/blog/posts/how-to-bypass-cloudflare-anti-scraping
  */
 const USER_AGENTS = [
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
-  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
+  // Chrome 131–134 (stable as of Q3 2026)
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+  // Firefox 130–133
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 14.5; rv:131.0) Gecko/20100101 Firefox/131.0",
+  // Safari 17.5+ (current)
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
+  // Mobile Safari (iOS 17.5+)
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+  // Edge (Chromium) — common on Windows corporate
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0",
 ];
 
 function pickUserAgent(): string {
@@ -190,7 +199,21 @@ function defaultHeaders(marketId: string): Record<string, string> {
   };
 }
 
-const REQUEST_DELAY_MS = 1200; // 1.2s pacing between requests, single-threaded
+/**
+ * Pacing between requests (milliseconds).
+ *
+ * Default: 1200ms (1.2 req/sec) — fine for interactive use in the dashboard.
+ * Override via JIJI_REQUEST_DELAY_MS for batch scripts (live-collector.ts
+ * sets this to 3000ms = 1 req / 3 sec for polite weekly scraping).
+ *
+ * The value is read fresh on every pacedDelay() call so env updates at
+ * runtime take effect immediately (no restart needed).
+ */
+function getRequestDelayMs(): number {
+  const env = parseInt(process.env.JIJI_REQUEST_DELAY_MS ?? "", 10);
+  return Number.isNaN(env) || env < 200 ? 1200 : env;
+}
+
 let lastRequestAt = 0;
 // Promise chain that serializes all pacedDelay calls.
 // Without this, N concurrent callers all read lastRequestAt, all sleep, all
@@ -198,10 +221,11 @@ let lastRequestAt = 0;
 let pacedChain: Promise<void> = Promise.resolve();
 
 function pacedDelay(): Promise<void> {
+  const delayMs = getRequestDelayMs();
   const next = pacedChain.then(async () => {
     const elapsed = Date.now() - lastRequestAt;
-    if (elapsed < REQUEST_DELAY_MS) {
-      await new Promise((r) => setTimeout(r, REQUEST_DELAY_MS - elapsed));
+    if (elapsed < delayMs) {
+      await new Promise((r) => setTimeout(r, delayMs - elapsed));
     }
     lastRequestAt = Date.now();
   });
@@ -223,6 +247,7 @@ function recordLive() {
   liveApiStatus.lastError = null;
   liveApiStatus.liveSuccessCount++;
   // Persist to DB (fire-and-forget — don't block the request on a status write).
+  // Catch unhandled rejections so a DB outage doesn't crash the collector.
   void db.serverState.upsert({
     where: { id: SINGLETON_ID },
     create: {
@@ -238,8 +263,17 @@ function recordLive() {
       liveApiLastError: null,
       liveApiSuccessCount: { increment: 1 },
     },
-  }).catch(() => {});
+  }).catch((e) => {
+    // Log once per minute at most — avoids log spam during prolonged DB outages
+    const now = Date.now();
+    if (now - lastStatusWriteErrorLoggedAt > 60_000) {
+      console.warn("[jiji-client] DB write failed in recordLive():", e?.message);
+      lastStatusWriteErrorLoggedAt = now;
+    }
+  });
 }
+
+let lastStatusWriteErrorLoggedAt = 0;
 
 function recordFailure(mode: "blocked" | "error", reason: string) {
   liveApiStatus.lastMode = mode;
@@ -261,7 +295,13 @@ function recordFailure(mode: "blocked" | "error", reason: string) {
       liveApiLastError: reason,
       liveApiFailureCount: { increment: 1 },
     },
-  }).catch(() => {});
+  }).catch((e) => {
+    const now = Date.now();
+    if (now - lastStatusWriteErrorLoggedAt > 60_000) {
+      console.warn("[jiji-client] DB write failed in recordFailure():", e?.message);
+      lastStatusWriteErrorLoggedAt = now;
+    }
+  });
 }
 
 /**
