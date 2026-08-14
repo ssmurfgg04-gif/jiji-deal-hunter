@@ -60,6 +60,15 @@ model Seller {
   phone           String?  // public seller contact
   verifiedBadge   Boolean  @default(false)
   isDealer        Boolean  @default(false) // computed: advertsCount/feedbackCount > 50
+
+  // Scout intelligence (from scout.jiji.co.ke — paid API, requires SCOUT_API_KEY)
+  // These fields are null until the operator provides a Scout API key and runs
+  // the Scout enrichment pass. See src/lib/scout-client.ts.
+  nicheScore      Int?     // 0..100 — seller's market dominance per category
+  categoryDominance Float? @default(0) // 0..1 — fraction of category this seller controls
+  responseTimeHours Float?  // Scout's measured response time
+  memberSinceYear  Int?    // Year the seller joined (from Scout profile)
+  scoutEnrichedAt  DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
