@@ -224,14 +224,10 @@ export function scoreDeal(f: DealFeatures): DealScoreResult {
     isGhostListing;
 
   if (strongScamSignal) classification = "SCAM";
-  else if (score >= 70 && sellerRisk < 0.5) classification = "GREAT";
-  else if (score >= 55 && sellerRisk < 0.7) classification = "FAIR";
-  else if (hasFakeDiscount || f.hasPhoneLeak || sellerRisk > 0.7 || isBoosted) {
-    classification = "RISKY";
-  } else if (score < 40) classification = "RISKY";
-  else classification = "FAIR";
-
-  if (score < 30 && strongScamSignal) classification = "SCAM";
+  else if (sellerRisk > 0.5) classification = "RISKY";
+  else if (score >= 70) classification = "GREAT";
+  else if (score >= 55) classification = "FAIR";
+  else classification = "RISKY";
 
   const factors: Record<string, number | string | boolean> = {
     price_vs_median: Number(priceVsMedian.toFixed(3)),

@@ -21,12 +21,16 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
  */
 export async function optimizeDb(): Promise<void> {
   try {
-    // PRAGMA journal_mode=WAL returns a row in SQLite; use queryRaw for that one
+    // PRAGMAs that return a row must use $queryRawUnsafe (not $executeRawUnsafe,
+    // which throws "Execute returned results, which is not allowed in SQLite").
+    // This was a silent bug — every pragma except journal_mode=WAL was failing
+    // and the error was swallowed by the catch block, so all 8 hot indexes
+    // were never created and synchronous/mmap/temp_store/cache_size were never set.
     await db.$queryRawUnsafe("PRAGMA journal_mode=WAL;");
-    await db.$executeRawUnsafe("PRAGMA synchronous=NORMAL;");
-    await db.$executeRawUnsafe("PRAGMA mmap_size=268435456;"); // 256MB
-    await db.$executeRawUnsafe("PRAGMA temp_store=MEMORY;");
-    await db.$executeRawUnsafe("PRAGMA cache_size=-20000;"); // 20MB page cache
+    await db.$queryRawUnsafe("PRAGMA synchronous=NORMAL;");
+    await db.$queryRawUnsafe("PRAGMA mmap_size=268435456;"); // 256MB
+    await db.$queryRawUnsafe("PRAGMA temp_store=MEMORY;");
+    await db.$queryRawUnsafe("PRAGMA cache_size=-20000;"); // 20MB page cache
 
     const indexes = [
       "CREATE INDEX IF NOT EXISTS idx_listing_price ON Listing(price);",
@@ -55,5 +59,18 @@ export async function optimizeDb(): Promise<void> {
     }
   } catch (e) {
     // Best-effort — don't crash startup
+  }
+}
+
+/**
+ * Run a WAL checkpoint to flush WAL file contents back to the main DB.
+ * Call after bulk inserts (collection runs) to keep read performance high.
+ * Uses $queryRawUnsafe because PRAGMA wal_checkpoint returns a row.
+ */
+export async function checkpointDb(): Promise<void> {
+  try {
+    await db.$queryRawUnsafe("PRAGMA wal_checkpoint(TRUNCATE);");
+  } catch {
+    // best-effort
   }
 }

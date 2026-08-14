@@ -27,23 +27,48 @@ export async function GET(req: Request) {
   const category = url.searchParams.get("category")?.trim() ?? "";
   const classification = url.searchParams.get("class")?.trim() ?? "";
   const sort = url.searchParams.get("sort") ?? "-deal";
-  const minPrice = url.searchParams.get("minPrice");
-  const maxPrice = url.searchParams.get("maxPrice");
+  const minPriceRaw = url.searchParams.get("minPrice");
+  const maxPriceRaw = url.searchParams.get("maxPrice");
   const abuseOnly = url.searchParams.get("abuse") === "1";
   const ghostOnly = url.searchParams.get("ghost") === "1";
   const brokerOnly = url.searchParams.get("broker") === "1";
   const buyerLoc = url.searchParams.get("buyerLoc") ?? null;
-  const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "100"), 500);
+
+  // Input validation — return 400 (not 500) on invalid numeric params.
+  // Prevents Prisma internals from leaking in error messages.
+  const limitRaw = parseInt(url.searchParams.get("limit") ?? "100", 10);
+  const limit = Number.isNaN(limitRaw) ? 100 : Math.max(1, Math.min(limitRaw, 500));
+
+  let minPrice: number | null = null;
+  let maxPrice: number | null = null;
+  if (minPriceRaw != null) {
+    minPrice = parseInt(minPriceRaw, 10);
+    if (Number.isNaN(minPrice)) {
+      return NextResponse.json(
+        { ok: false, error: "minPrice must be an integer" },
+        { status: 400 }
+      );
+    }
+  }
+  if (maxPriceRaw != null) {
+    maxPrice = parseInt(maxPriceRaw, 10);
+    if (Number.isNaN(maxPrice)) {
+      return NextResponse.json(
+        { ok: false, error: "maxPrice must be an integer" },
+        { status: 400 }
+      );
+    }
+  }
 
   const where: any = {};
   if (q) where.title = { contains: q };
   if (marketId) where.marketId = marketId;
   if (category) where.category = category;
   if (classification) where.dealScore = { classification };
-  if (minPrice || maxPrice) {
+  if (minPrice != null || maxPrice != null) {
     where.price = {};
-    if (minPrice) where.price.gte = parseInt(minPrice, 10);
-    if (maxPrice) where.price.lte = parseInt(maxPrice, 10);
+    if (minPrice != null) where.price.gte = minPrice;
+    if (maxPrice != null) where.price.lte = maxPrice;
   }
   if (abuseOnly) where.abuseReported = true;
   if (ghostOnly) {

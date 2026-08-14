@@ -31,11 +31,12 @@ export async function POST(req: Request) {
     const action = body?.action ?? "validate";
 
     if (action === "seed_defaults") {
-      const added = await seedDefaultProxies();
+      const result = await seedDefaultProxies();
       return NextResponse.json({
         ok: true,
-        added,
-        message: `${added} default proxies seeded. Call {action:"validate"} next.`,
+        added: result.added,
+        rejected: result.rejected,
+        message: `${result.added} proxies added, ${result.rejected} rejected by SSRF guard. Call {action:"validate"} next.`,
       });
     }
 
@@ -47,8 +48,14 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
-      const added = await seedProxyPool(urls);
-      return NextResponse.json({ ok: true, added });
+      const result = await seedProxyPool(urls);
+      if (result.added === 0 && result.rejected > 0) {
+        return NextResponse.json({
+          ok: false,
+          error: `All ${result.rejected} URLs rejected by SSRF guard. Only public http(s) URLs are allowed.`,
+        }, { status: 400 });
+      }
+      return NextResponse.json({ ok: true, added: result.added, rejected: result.rejected });
     }
 
     // action === "validate"

@@ -27,8 +27,8 @@ export async function register() {
     try {
       const count = await db.proxyPool.count();
       if (count === 0) {
-        const added = await seedDefaultProxies();
-        console.log(`[proxies] Seeded ${added} default proxies`);
+        const result = await seedDefaultProxies();
+        console.log(`[proxies] Seeded ${result.added} proxies (${result.rejected} rejected by SSRF guard)`);
       }
     } catch (e) {
       console.warn("[proxies] Failed to seed default proxies:", e);
@@ -37,5 +37,11 @@ export async function register() {
     // 3. Start the auto-collection scheduler.
     startScheduler();
     console.log("[scheduler] Auto-collection scheduler started");
+
+    // 4. Global unhandled rejection handler — prevents stray promise rejections
+    // (e.g. from cache cleanup intervals) from crashing the Next.js process.
+    process.on("unhandledRejection", (err) => {
+      console.error("[unhandledRejection]", err);
+    });
   }
 }

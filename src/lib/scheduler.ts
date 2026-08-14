@@ -37,6 +37,7 @@ const DEFAULT_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 const state = {
   enabled: process.env.JIJI_AUTOCOLLECT_ENABLED !== "false",
   running: false,
+  starting: false, // synchronously set to prevent double-start race
   intervalMs: parseInt(process.env.JIJI_AUTOCOLLECT_INTERVAL_MS ?? "", 10) || DEFAULT_INTERVAL_MS,
   lastRunAt: null as string | null,
   lastRunSummary: null as SchedulerStatus["lastRunSummary"],
@@ -76,19 +77,18 @@ async function tick() {
 
 /**
  * Start the scheduler. Safe to call multiple times — guards against
- * double-init.
+ * double-init via the `state.starting` flag (set synchronously).
  */
 export function startScheduler(): void {
-  if (state.timer) return;
+  if (state.timer || state.starting) return;
   if (!state.enabled) {
     state.nextRunAt = null;
     return;
   }
-  // First tick: short delay (5s after boot) so the server is fully ready.
-  // We also avoid racing with the initial client-triggered collection
-  // (the dashboard auto-collects on first load if DB is empty).
+  state.starting = true;
   const firstRunDelayMs = 5000;
   setTimeout(() => {
+    state.starting = false;
     tick();
     state.timer = setInterval(tick, state.intervalMs);
     state.nextRunAt = new Date(Date.now() + state.intervalMs).toISOString();

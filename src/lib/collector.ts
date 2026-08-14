@@ -26,6 +26,7 @@ import {
 import { scoreDeal } from "./deal-scorer";
 import { medianPrice } from "./price-analysis";
 import { indexListingImages, getListingDuplicateSignals } from "./image-hash";
+import { checkpointDb } from "./db";
 
 // Default: top categories to scrape per market when none specified.
 // Cat IDs are Jiji's numeric IDs (3 = cars in KE etc.) — the actual mapping
@@ -429,6 +430,12 @@ export async function runCollection(opts: CollectionOptions = {}): Promise<Colle
     log.push(
       `Collection completed: ${itemsCollected} new, ${itemsUpdated} updated, ${fakeDiscounts} fake discounts, ${scamsFlagged} scams, ${blockedCount}/${totalApiCalls} calls blocked`
     );
+
+    // WAL checkpoint — flushes WAL file contents back to the main DB so reads
+    // stay fast and the WAL file doesn't grow unbounded.
+    if (itemsCollected > 0 || itemsUpdated > 0) {
+      await checkpointDb();
+    }
 
     return {
       runId: run.id,

@@ -136,13 +136,22 @@ const DEFAULT_HEADERS: Record<string, string> = {
 
 const REQUEST_DELAY_MS = 1200; // 1.2s pacing between requests, single-threaded
 let lastRequestAt = 0;
+// Promise chain that serializes all pacedDelay calls.
+// Without this, N concurrent callers all read lastRequestAt, all sleep, all
+// fire simultaneously — defeating the rate limiter.
+let pacedChain: Promise<void> = Promise.resolve();
 
-async function pacedDelay() {
-  const elapsed = Date.now() - lastRequestAt;
-  if (elapsed < REQUEST_DELAY_MS) {
-    await new Promise((r) => setTimeout(r, REQUEST_DELAY_MS - elapsed));
-  }
-  lastRequestAt = Date.now();
+function pacedDelay(): Promise<void> {
+  const next = pacedChain.then(async () => {
+    const elapsed = Date.now() - lastRequestAt;
+    if (elapsed < REQUEST_DELAY_MS) {
+      await new Promise((r) => setTimeout(r, REQUEST_DELAY_MS - elapsed));
+    }
+    lastRequestAt = Date.now();
+  });
+  // Keep the chain alive even if one caller throws
+  pacedChain = next.catch(() => {});
+  return next;
 }
 
 function recordLive() {
@@ -286,14 +295,21 @@ function parsePriceValuation(raw: any): {
   const valueStr = pv.value ?? pv.range ?? "";
   const url = pv.url ?? null;
 
-  // Parse "KSh 362 K - 425 K" → (362000, 425000)
+  // Parse formats Jiji uses:
+  //   "KSh 362 K - 425 K"       → (362000, 425000)
+  //   "KSh 362K - 425K"         → (362000, 425000)  ← no space before K
+  //   "KSh 1,200,000 - 1,500,000" → (1200000, 1500000)
+  //   "KSh 1.2M - 1.5M"         → (1200000, 1500000)  ← M suffix (million)
+  //   "KSh 50,000"              → (50000, 50000)      ← single value
   let low: number | null = null;
   let high: number | null = null;
   if (typeof valueStr === "string") {
-    // Normalize: "KSh 362 K - 425 K" → "362000 - 425000"
     const normalized = valueStr
       .replace(/KSh/gi, "")
-      .replace(/\bK\b/g, "000")
+      // Handle "1.2M" / "1.5M" (million) BEFORE handling K — replace with full integer
+      .replace(/(\d[\d.]*?)\s*M\b/gi, (_, d) => String(Math.round(parseFloat(d) * 1_000_000)))
+      // Handle "362K" (with or without space) — replace K with 000
+      .replace(/(\d)\s*K\b/gi, "$1000")
       .replace(/,/g, "");
     const nums = normalized.match(/\d[\d\s]*\d|\d/g);
     if (nums && nums.length >= 2) {

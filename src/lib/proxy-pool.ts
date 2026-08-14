@@ -119,6 +119,42 @@ export async function pickProxy(): Promise<string | null> {
 }
 
 /**
+ * Validate that a proxy URL is safe to test.
+ *
+ * Prevents SSRF: rejects non-http(s) schemes (file://, gopher://, javascript:),
+ * internal/private IPs (127.x, 10.x, 192.168.x, 169.254.x AWS metadata, etc.),
+ * and localhost. Without this, an attacker could use the proxy validator to
+ * port-scan the internal network.
+ */
+export function isSafeProxyUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:"].includes(parsed.protocol)) return false;
+    const host = parsed.hostname.toLowerCase();
+    if (
+      host === "localhost" ||
+      host === "::1" ||
+      host.startsWith("127.") ||
+      host.startsWith("10.") ||
+      host.startsWith("192.168.") ||
+      host.startsWith("169.254.") || // AWS metadata, link-local
+      host.startsWith("0.") ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(host) || // private 172.16/12
+      host.startsWith("fc") || // IPv6 ULA
+      host.startsWith("fd") || // IPv6 ULA
+      host.endsWith(".internal") ||
+      host.endsWith(".local") ||
+      host.endsWith(".localhost")
+    ) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Default starter proxy list.
  *
  * These are public/free proxies that the operator can seed the pool with
@@ -132,7 +168,6 @@ export async function pickProxy(): Promise<string | null> {
  * with your own list, then POST { action: "validate" }.
  */
 export const DEFAULT_PROXY_SEED_LIST: string[] = [
-  // HTTP proxies
   "http://185.199.229.156:7492",
   "http://157.245.222.183:3128",
   "http://51.159.115.74:3128",
@@ -143,7 +178,6 @@ export const DEFAULT_PROXY_SEED_LIST: string[] = [
   "http://161.35.70.247:3128",
   "http://173.212.193.249:3128",
   "http://47.252.4.142:8080",
-  // HTTPS proxies (will be tested via CONNECT)
   "https://185.199.229.156:7492",
   "https://51.159.115.74:3128",
   "https://146.190.55.231:8080",
@@ -153,29 +187,38 @@ export const DEFAULT_PROXY_SEED_LIST: string[] = [
 
 /**
  * Seed the proxy pool with the default starter list (idempotent).
- * Returns the count of newly-added proxies.
+ * Returns the count of newly-added proxies. Validates URLs to prevent SSRF.
  */
-export async function seedDefaultProxies(): Promise<number> {
-  return seedProxyPool(DEFAULT_PROXY_SEED_LIST);
+export async function seedDefaultProxies(): Promise<{ added: number; rejected: number }> {
+  const safe = DEFAULT_PROXY_SEED_LIST.filter(isSafeProxyUrl);
+  return seedProxyPool(safe);
 }
 
 /**
  * Seed the proxy pool with a starter list (operator-provided URLs).
- * Idempotent — existing proxies are skipped.
+ * Idempotent — existing proxies are skipped. Validates URLs to prevent SSRF.
  */
-export async function seedProxyPool(urls: string[]): Promise<number> {
+export async function seedProxyPool(urls: string[]): Promise<{ added: number; rejected: number }> {
   let added = 0;
+  let rejected = 0;
   for (const url of urls) {
+    if (!isSafeProxyUrl(url)) {
+      rejected++;
+      continue;
+    }
     try {
-      await db.proxyPool.upsert({
-        where: { url },
-        create: { url, isWorking: false },
-        update: {},
+      // Use create() + catch UniqueConstraint to distinguish new vs existing
+      await db.proxyPool.create({
+        data: { url, isWorking: false },
       });
       added++;
-    } catch {
-      // ignore duplicates / malformed
+    } catch (e: any) {
+      // P2002 = unique constraint violation (already exists) — not an error
+      if (e?.code !== "P2002") {
+        // Other errors (malformed URL, etc.) count as rejected
+        rejected++;
+      }
     }
   }
-  return added;
+  return { added, rejected };
 }

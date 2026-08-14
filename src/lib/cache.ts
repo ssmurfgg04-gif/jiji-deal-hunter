@@ -24,6 +24,13 @@ const memoryCache = new Map<string, MemoryEntry>();
 const MAX_MEMORY_ENTRIES = 200;
 
 /**
+ * In-flight compute promises — prevents cache stampede.
+ * When 10 parallel requests hit a cold cache key, only the first runs compute();
+ * the other 9 await the same in-flight promise.
+ */
+const inflight = new Map<string, Promise<any>>();
+
+/**
  * Get from cache — checks memory first, then DB, then returns null.
  */
 export async function cacheGet<T>(key: string): Promise<T | null> {
@@ -143,6 +150,10 @@ export async function cacheCleanup(): Promise<number> {
 /**
  * Cache-aside helper: get-or-compute pattern.
  * If the cache has the value, return it. Otherwise compute, store, return.
+ *
+ * Single-flight: if multiple callers request the same cold key concurrently,
+ * only the first runs compute(); the rest await the same in-flight promise.
+ * This prevents cache stampede (10 parallel requests → 10 parallel DB queries).
  */
 export async function cacheAside<T>(
   key: string,
@@ -151,9 +162,22 @@ export async function cacheAside<T>(
 ): Promise<T> {
   const cached = await cacheGet<T>(key);
   if (cached !== null) return cached;
-  const fresh = await compute();
-  await cacheSet(key, fresh, ttlSeconds);
-  return fresh;
+
+  // Single-flight: if another caller is already computing this key, await their result
+  const existing = inflight.get(key);
+  if (existing) return existing as Promise<T>;
+
+  const p = (async () => {
+    try {
+      const fresh = await compute();
+      await cacheSet(key, fresh, ttlSeconds);
+      return fresh;
+    } finally {
+      inflight.delete(key);
+    }
+  })();
+  inflight.set(key, p);
+  return p;
 }
 
 /**
